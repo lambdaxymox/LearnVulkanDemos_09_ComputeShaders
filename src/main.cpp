@@ -125,7 +125,7 @@ private:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan Engine", nullptr, nullptr);
+        m_window = glfwCreateWindow(WIDTH, HEIGHT, "Hello Window", nullptr, nullptr);
     }
 
     std::vector<const char*> getRequiredExtensions() {
@@ -532,7 +532,7 @@ private:
     }
 
     void createGraphicsPipeline() {
-        
+
     }
 
     void initVulkan() {
