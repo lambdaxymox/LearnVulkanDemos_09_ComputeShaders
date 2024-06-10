@@ -66,7 +66,7 @@ endfunction()
 
 cmake_minimum_required(VERSION 3.28)
 
-project("LearnVulkanDemos_00_HelloWindow" VERSION 1.0.0 LANGUAGES CXX)
+project("LearnVulkanDemos_01_HelloTriangle" VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -82,14 +82,16 @@ add_subdirectory(external/fmt-10.2.0)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
-add_executable(LearnVulkanDemos_00_HelloWindow)
-target_sources(LearnVulkanDemos_00_HelloWindow PRIVATE
+add_executable(LearnVulkanDemos_01_HelloTriangle)
+target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
     src/main.cpp
 )
-target_link_libraries(LearnVulkanDemos_00_HelloWindow glfw)
-target_link_libraries(LearnVulkanDemos_00_HelloWindow glm)
-target_link_libraries(LearnVulkanDemos_00_HelloWindow fmt)
-target_link_libraries(LearnVulkanDemos_00_HelloWindow Vulkan::Vulkan)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle glfw)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle glm)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle fmt)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle Vulkan::Vulkan)
+add_dependencies(LearnVulkanDemos_01_HelloTriangle GLSL_Shaders)
+add_dependencies(LearnVulkanDemos_01_HelloTriangle HLSL_Shaders)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 find_program(DX_SHADER_COMPILER dxc HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
