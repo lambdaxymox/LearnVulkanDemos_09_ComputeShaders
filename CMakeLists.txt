@@ -107,3 +107,6 @@ add_custom_target(
     HLSL_Shaders
     DEPENDS ${HLSL_SPIRV_BINARY_FILES}
 )
+
+include(CppCheck)
+AddCppCheck(LearnVulkanDemos_00_HelloWindow)
