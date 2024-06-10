@@ -3,6 +3,8 @@
 .DS_Store
 .vscode/
 
+shaders/*.spv
+
 # CMake generated files
 CMakeLists.txt.user
 CMakeCache.txt
