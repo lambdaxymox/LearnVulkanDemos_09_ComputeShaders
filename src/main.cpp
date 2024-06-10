@@ -531,6 +531,10 @@ private:
         }
     }
 
+    void createGraphicsPipeline() {
+        
+    }
+
     void initVulkan() {
         this->createInstance();
         this->setupDebugMessenger();
@@ -539,6 +543,7 @@ private:
         this->createLogicalDevice();
         this->createSwapChain();
         this->createImageViews();
+        this->createGraphicsPipeline();
     }
 
     void mainLoop() {
