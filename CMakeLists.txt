@@ -84,7 +84,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_executable(LearnVulkanDemos_01_HelloTriangle)
 target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
+    src/platform.cpp
     src/main.cpp
+    # src/PhysicalDeviceProperties.cpp
+    src/PhysicalDeviceRequirements.cpp
+    src/PlatformInfo.cpp
+    src/PlatformRequirements.cpp
 )
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle glfw)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle glm)

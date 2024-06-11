@@ -17,14 +17,18 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
+#include "platform.h"
+#include "PlatformInfo.h"
+// #include "PhysicalDeviceProperties.h"
+#include "PhysicalDeviceRequirements.h"
+#include "PlatformRequirements.h"
+
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const char* VK_LAYER_KHRONOS_validation = "VK_LAYER_KHRONOS_validation";
-const char* VK_KHR_portability_subset = "VK_KHR_portability_subset";
-
 const std::vector<std::string> validationLayers = { 
-    VK_LAYER_KHRONOS_validation
+    platform::VK_LAYER_KHRONOS_validation
 };
 
 const std::vector<const char*> deviceExtensions = {
@@ -39,7 +43,7 @@ const bool enableValidationLayers = true;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-
+/*
 namespace vk_platform {
     enum class Platform {
         Apple,
@@ -60,6 +64,7 @@ namespace vk_platform {
     #endif
     }
 }
+*/
 
 VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, 
@@ -102,7 +107,7 @@ std::vector<const char*> convertToCStrings(const std::vector<std::string>& strin
     
     return cStrings;
 }
-
+/*
 class PlatformInfo final {
 private:
     std::vector<VkLayerProperties> m_availableLayers;
@@ -115,7 +120,7 @@ public:
         , m_availableExtensions { availableExtensions }
     {
         for (const auto& layerProperties : availableLayers) {
-            if (strcmp(layerProperties.layerName, VK_LAYER_KHRONOS_validation) == 0) {
+            if (strcmp(layerProperties.layerName, vk_platform::VK_LAYER_KHRONOS_validation) == 0) {
                 m_validationLayersAvailable = true;
             }
         }
@@ -263,7 +268,8 @@ template <> struct fmt::formatter<PlatformInfo>: fmt::formatter<string_view> {
         );
     }
 };
-
+*/
+/*
 class PlatformRequirements final {
 private:
     std::vector<std::string> m_instanceExtensions;
@@ -271,7 +277,7 @@ private:
 public:
     explicit PlatformRequirements(const std::vector<std::string>& extensions, const std::vector<std::string>& layers)
         : m_instanceExtensions { extensions }
-        , m_instanceLayers{ layers }
+        , m_instanceLayers { layers }
     {
     }
 
@@ -376,7 +382,7 @@ public:
         return PlatformRequirements(m_instanceExtensions, m_instanceLayers);
     }
 };
-
+*/
 using MissingPlatformRequirements = PlatformRequirements;
 
 class PlatformInfoOps {
@@ -475,6 +481,47 @@ public:
     }
 };
 
+template <> struct fmt::formatter<VkExtensionProperties> {
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator {
+        return ctx.end();
+    };
+
+    auto format(const VkExtensionProperties& extensionProperties, format_context& ctx) const -> format_context::iterator {
+        auto specVariant = VK_API_VERSION_VARIANT(extensionProperties.specVersion);
+        auto specMajor = VK_API_VERSION_MAJOR(extensionProperties.specVersion);
+        auto specMinor = VK_API_VERSION_MINOR(extensionProperties.specVersion);
+        auto specPatch = VK_API_VERSION_PATCH(extensionProperties.specVersion);
+        std::string_view extensionName { extensionProperties.extensionName, sizeof(extensionProperties.extensionName) };
+
+        auto appender = fmt::format_to(ctx.out(), "{}", "VkExtensionProperties {{ ");
+        fmt::format_to(appender, "extensionName: \"{}\", ", extensionName);
+        fmt::format_to(appender, "specVersion: {}.{}.{}.{}", specVariant, specMajor, specMinor, specPatch);
+        fmt::format_to(ctx.out(), "{}", " }}");
+        
+        return appender;
+    }
+};
+
+template <> struct fmt::formatter<std::vector<VkExtensionProperties>> {
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator {
+        return ctx.end();
+    };
+
+    auto format(const std::vector<VkExtensionProperties>& vec, format_context& ctx) const -> format_context::iterator {
+        auto appender = fmt::format_to(ctx.out(), "{}", "[");
+        if (!vec.empty()) {
+            auto lastItem = vec.end() - 1;
+            for (auto item = vec.begin(); item != lastItem; item++) {
+                fmt::format_to(appender, "\"{}\", ", *item);
+            }
+            fmt::format_to(appender, "\"{}\"", *lastItem);
+        }
+        fmt::format_to(appender, "{}", "]");
+
+        return appender;
+    }
+};
+
 template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<string_view> {
     auto format(const PhysicalDeviceProperties& deviceProperties, format_context& ctx) const -> format_context::iterator {
         return fmt::format_to(
@@ -485,6 +532,7 @@ template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<stri
     }
 };
 
+/*
 class PhysicalDeviceRequirements final {
 private:
     std::vector<std::string> m_deviceExtensions;
@@ -520,7 +568,7 @@ public:
     explicit PhysicalDeviceRequirementsBuilder() {
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
         if (vk_platform::detectOperatingSystem() == vk_platform::Platform::Apple) {
-            m_deviceExtensions.emplace_back(VK_KHR_portability_subset);
+            m_deviceExtensions.emplace_back(vk_platform::VK_KHR_portability_subset);
         }
     }
 
@@ -535,7 +583,7 @@ public:
         return PhysicalDeviceRequirements(m_deviceExtensions);
     }
 };
-
+*/
 using MissingPhysicalDeviceRequirements = PhysicalDeviceRequirements;
 
 class PhysicalDeviceInfoOps {
@@ -741,7 +789,7 @@ private:
 
     VkInstanceCreateFlags defaultInstanceCreateFlags() const {
         auto flags = 0;
-        if (vk_platform::detectOperatingSystem() == vk_platform::Platform::Apple) {
+        if (platform::detectOperatingSystem() == platform::Platform::Apple) {
             flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
