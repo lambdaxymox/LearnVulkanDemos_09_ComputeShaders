@@ -638,8 +638,8 @@ private:
 
     uint32_t m_currentFrame = 0;
 
-    bool _isInitialized { false };
-    bool _enableValidationLayers { false };
+    bool m_isInitialized { false };
+    bool m_enableValidationLayers { false };
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
@@ -672,7 +672,7 @@ private:
     }
 
     void cleanup() {
-        if (_isInitialized) {
+        if (m_isInitialized) {
             this->cleanupSwapChain();
 
             vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
@@ -822,7 +822,7 @@ private:
             throw std::runtime_error("Failed to create Vulkan instance.");
         }
 
-        _isInitialized = true;
+        m_isInitialized = true;
     }
 
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
