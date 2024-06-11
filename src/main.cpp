@@ -589,13 +589,13 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-class HelloTriangleApplication {
+class App {
 public:
     void run() {
-        initWindow();
-        initVulkan();
-        mainLoop();
-        cleanup();
+        this->initWindow();
+        this->initVulkan();
+        this->mainLoop();
+        this->cleanup();
     }
 private:
     VkInstance m_instance;
@@ -635,30 +635,30 @@ private:
     bool _enableValidationLayers { false };
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
         app->m_framebufferResized = true;
     }
 
     void initVulkan() {
-        createInstance();
-        setupDebugMessenger();
-        createSurface();
-        choosePhysicalDevice();
-        createLogicalDevice();
-        createSwapChain();
-        createImageViews();
-        createRenderPass();
-        createGraphicsPipeline();
-        createFramebuffers();
-        createCommandPool();
-        createCommandBuffers();
-        createSyncObjects();
+        this->createInstance();
+        this->setupDebugMessenger();
+        this->createSurface();
+        this->choosePhysicalDevice();
+        this->createLogicalDevice();
+        this->createSwapChain();
+        this->createImageViews();
+        this->createRenderPass();
+        this->createGraphicsPipeline();
+        this->createFramebuffers();
+        this->createCommandPool();
+        this->createCommandBuffers();
+        this->createSyncObjects();
     }
 
     void mainLoop() {
         while (!glfwWindowShouldClose(m_window)) {
             glfwPollEvents();
-            drawFrame();
+            this->drawFrame();
         }
 
         vkDeviceWaitIdle(m_device);
@@ -666,7 +666,7 @@ private:
 
     void cleanup() {
         if (_isInitialized) {
-            cleanupSwapChain();
+            this->cleanupSwapChain();
 
             vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
             vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
@@ -731,7 +731,7 @@ private:
     }
 
     PlatformRequirements getInstanceRequirements() const {
-        auto vulkanExtensionsRequiredBySDL = getVulkanInstanceExtensionsRequiredBySDL();
+        auto vulkanExtensionsRequiredBySDL = this->getVulkanInstanceExtensionsRequiredBySDL();
         auto platformRequirements = PlatformRequirementsBuilder()
             .requireValidationLayers()
             .requireDebuggingExtensions()
@@ -755,7 +755,7 @@ private:
     }
 
     std::vector<std::string> getEnabledLayerNames() {
-        if (enableValidationLayers && !checkValidationLayerSupport()) {
+        if (enableValidationLayers && !this->checkValidationLayerSupport()) {
             throw std::runtime_error("validation layers requested, but not available!");
         }
 
@@ -773,7 +773,7 @@ private:
 
     void createInstance() {
         auto platformInfo = PlatformInfoOps::getPlatformInfo();    
-        auto instanceRequirements = getInstanceRequirements();
+        auto instanceRequirements = this->getInstanceRequirements();
         auto missingRequirements = PlatformInfoOps::detectMissingInstanceRequirements(
             platformInfo,
             instanceRequirements
@@ -788,8 +788,8 @@ private:
             throw std::runtime_error(errorMessage);
         }
 
-        auto enabledLayerNames = getEnabledLayerNames();
-        auto instanceCreateFlags = defaultInstanceCreateFlags();
+        auto enabledLayerNames = this->getEnabledLayerNames();
+        auto instanceCreateFlags = this->defaultInstanceCreateFlags();
         auto enabledLayerNamesCStrings = convertToCStrings(enabledLayerNames);
         auto requiredExtensionsCStrings = convertToCStrings(instanceRequirements.getExtensions());
 
@@ -849,7 +849,7 @@ private:
         }
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
-        populateDebugMessengerCreateInfo(createInfo);
+        this->populateDebugMessengerCreateInfo(createInfo);
 
         if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger!");
@@ -984,13 +984,13 @@ private:
     }
 
     bool isDeviceSuitable(VkPhysicalDevice device) {
-        QueueFamilyIndices indices = findQueueFamilies(device);
+        QueueFamilyIndices indices = this->findQueueFamilies(device);
 
-        bool extensionsSupported = checkDeviceExtensionSupport(device);
+        bool extensionsSupported = this->checkDeviceExtensionSupport(device);
 
         bool swapChainAdequate = false;
         if (extensionsSupported) {
-            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+            SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(device);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
@@ -1009,7 +1009,7 @@ private:
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
         for (const auto& device : devices) {
-            if (isDeviceSuitable(device)) {
+            if (this->isDeviceSuitable(device)) {
                 m_physicalDevice = device;
                 break;
             }
@@ -1021,7 +1021,7 @@ private:
     }
 
     void createLogicalDevice() {
-        QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
+        QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice);
 
         std::set<uint32_t> uniqueQueueFamilies = {
             indices.graphicsFamily.value(), 
@@ -1048,7 +1048,7 @@ private:
         createInfo.pEnabledFeatures = &deviceFeatures;
 
         auto deviceExtensionProperties = PhysicalDeviceInfoOps::getAvailableVulkanDeviceExtensions(m_physicalDevice);
-        auto requiredDeviceExtensions = getDeviceRequirements(m_physicalDevice);
+        auto requiredDeviceExtensions = this->getDeviceRequirements(m_physicalDevice);
         auto missingRequirements = PhysicalDeviceInfoOps::detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
             requiredDeviceExtensions
@@ -1084,11 +1084,11 @@ private:
     }
 
     void createSwapChain() {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice);
+        SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(m_physicalDevice);
 
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+        VkSurfaceFormatKHR surfaceFormat = this->chooseSwapSurfaceFormat(swapChainSupport.formats);
+        VkPresentModeKHR presentMode = this->chooseSwapPresentMode(swapChainSupport.presentModes);
+        VkExtent2D extent = this->chooseSwapExtent(swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -1106,7 +1106,7 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
+        QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice);
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         if (indices.graphicsFamily != indices.presentFamily) {
@@ -1226,10 +1226,10 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderCode = readFile("shaders/shader.vert.hlsl.spv");
-        auto fragmentShaderCode = readFile("shaders/shader.frag.hlsl.spv");
-        auto vertexShaderModule = createShaderModule(vertexShaderCode);
-        auto fragmentShaderModule = createShaderModule(fragmentShaderCode);
+        auto vertexShaderCode = this->readFile("shaders/shader.vert.hlsl.spv");
+        auto fragmentShaderCode = this->readFile("shaders/shader.frag.hlsl.spv");
+        auto vertexShaderModule = this->createShaderModule(vertexShaderCode);
+        auto fragmentShaderModule = this->createShaderModule(fragmentShaderCode);
 
         VkPipelineShaderStageCreateInfo vertexShaderStageInfo{};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1400,7 +1400,7 @@ private:
     }
 
     void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
+        QueueFamilyIndices queueFamilyIndices = this->findQueueFamilies(m_physicalDevice);
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1509,7 +1509,7 @@ private:
         );
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            recreateSwapChain();
+            this->recreateSwapChain();
             return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
@@ -1518,7 +1518,7 @@ private:
         vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
 
         vkResetCommandBuffer(m_commandBuffers[m_currentFrame], /* VkCommandBufferResetFlagBits */ 0);
-        recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
+        this->recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1556,7 +1556,7 @@ private:
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized) {
             m_framebufferResized = false;
-            recreateSwapChain();
+            this->recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
@@ -1587,16 +1587,16 @@ private:
 
         vkDeviceWaitIdle(m_device);
 
-        cleanupSwapChain();
+        this->cleanupSwapChain();
 
-        createSwapChain();
-        createImageViews();
-        createFramebuffers();
+        this->createSwapChain();
+        this->createImageViews();
+        this->createFramebuffers();
     }
 };
 
 int main() {
-    HelloTriangleApplication app;
+    App app;
 
     try {
         app.run();
