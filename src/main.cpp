@@ -19,7 +19,7 @@
 
 #include "platform.h"
 #include "PlatformInfo.h"
-// #include "PhysicalDeviceProperties.h"
+#include "PhysicalDeviceProperties.h"
 #include "PhysicalDeviceRequirements.h"
 #include "PlatformRequirements.h"
 
@@ -169,7 +169,7 @@ private:
         return instanceExtensionProperties;
     }
 };
-
+/*
 class PhysicalDeviceProperties final {
 private:
     std::vector<VkExtensionProperties> m_deviceExtensions;
@@ -234,7 +234,7 @@ template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<stri
         );
     }
 };
-
+*/
 
 using MissingPhysicalDeviceRequirements = PhysicalDeviceRequirements;
 

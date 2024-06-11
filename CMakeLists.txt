@@ -86,7 +86,7 @@ add_executable(LearnVulkanDemos_01_HelloTriangle)
 target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
     src/platform.cpp
     src/main.cpp
-    # src/PhysicalDeviceProperties.cpp
+    src/PhysicalDeviceProperties.cpp
     src/PhysicalDeviceRequirements.cpp
     src/PlatformInfo.cpp
     src/PlatformRequirements.cpp
