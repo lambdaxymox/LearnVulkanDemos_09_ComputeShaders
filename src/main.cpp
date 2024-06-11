@@ -645,6 +645,17 @@ private:
         app->m_framebufferResized = true;
     }
 
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+    ) {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+        return VK_FALSE;
+    }
+
     void initVulkan() {
         this->createInstance();
         this->setupDebugMessenger();
@@ -816,7 +827,7 @@ private:
         createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensionsCStrings.size());
         createInfo.ppEnabledExtensionNames = requiredExtensionsCStrings.data();
 
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
+        auto result = vkCreateInstance(&createInfo, nullptr, &m_instance);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to create Vulkan instance.");
         }
@@ -838,17 +849,6 @@ private:
         createInfo.pfnUserCallback = debugCallback;
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData
-    ) {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-        return VK_FALSE;
-    }
-
     void setupDebugMessenger() {
         if (!enableValidationLayers) {
             return;
@@ -857,13 +857,14 @@ private:
         auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
         this->populateDebugMessengerCreateInfo(createInfo);
 
-        if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) {
+        auto result = CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger!");
         }
     }
 
     void createSurface() {
-        VkResult result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface);
+        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
@@ -1164,7 +1165,8 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_device, &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS) {
+            auto result = vkCreateImageView(m_device, &createInfo, nullptr, &m_swapChainImageViews[i]);
+            if (result != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create image views!");
             }
         }
@@ -1195,7 +1197,7 @@ private:
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
         auto shaderModule = VkShaderModule {};
-        VkResult result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
+        auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create shader module!");
         }
@@ -1230,7 +1232,7 @@ private:
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
 
-        VkResult result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass);
+        auto result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
@@ -1428,7 +1430,8 @@ private:
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+        auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
     }
@@ -1442,7 +1445,8 @@ private:
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-        if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
+        auto result = vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data());
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
@@ -1530,7 +1534,7 @@ private:
         vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(
+        auto result = vkAcquireNextImageKHR(
             m_device, 
             m_swapChain, 
             UINT64_MAX, 
