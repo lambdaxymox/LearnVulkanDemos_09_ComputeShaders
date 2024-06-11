@@ -709,7 +709,7 @@ private:
         glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
     }
 
-    PlatformRequirements getVulkanInstanceExtensionsRequiredBySDL() const {
+    PlatformRequirements getVulkanInstanceExtensionsRequiredByGLFW() const {
         uint32_t requiredExtensionCount = 0;
         const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
         auto requiredExtensions = std::vector<std::string> {};
@@ -735,11 +735,11 @@ private:
     }
 
     PlatformRequirements getInstanceRequirements() const {
-        auto vulkanExtensionsRequiredBySDL = this->getVulkanInstanceExtensionsRequiredBySDL();
+        auto vulkanExtensionsRequiredByGLFW = this->getVulkanInstanceExtensionsRequiredByGLFW();
         auto platformRequirements = PlatformRequirementsBuilder()
             .requireValidationLayers()
             .requireDebuggingExtensions()
-            .includeFrom(vulkanExtensionsRequiredBySDL)
+            .includeFrom(vulkanExtensionsRequiredByGLFW)
             .build();
         auto platformInfo = PlatformInfoOps::getPlatformInfo();
 
