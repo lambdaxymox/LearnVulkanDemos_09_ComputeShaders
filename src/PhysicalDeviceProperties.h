@@ -8,12 +8,12 @@
 
 
 class PhysicalDeviceProperties final {
-private:
-    std::vector<VkExtensionProperties> m_deviceExtensions;
 public:
     explicit PhysicalDeviceProperties(std::vector<VkExtensionProperties> deviceExtensions);
 
     const std::vector<VkExtensionProperties>& getExtensions() const;
+private:
+    std::vector<VkExtensionProperties> m_deviceExtensions;
 };
 
 template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<string_view> {

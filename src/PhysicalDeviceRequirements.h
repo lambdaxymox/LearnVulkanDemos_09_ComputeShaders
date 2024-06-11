@@ -9,14 +9,14 @@
 
 
 class PhysicalDeviceRequirements final {
-private:
-    std::vector<std::string> m_deviceExtensions;
 public:
     explicit PhysicalDeviceRequirements(std::vector<std::string> deviceExtensions);
 
     const std::vector<std::string>& getExtensions() const;
 
     bool isEmpty() const;
+private:
+    std::vector<std::string> m_deviceExtensions;
 };
 
 template <> struct fmt::formatter<PhysicalDeviceRequirements>: fmt::formatter<string_view> {
@@ -24,14 +24,14 @@ template <> struct fmt::formatter<PhysicalDeviceRequirements>: fmt::formatter<st
 };
 
 class PhysicalDeviceRequirementsBuilder final {
-private:
-    std::vector<std::string> m_deviceExtensions;
 public:
     explicit PhysicalDeviceRequirementsBuilder();
 
     PhysicalDeviceRequirementsBuilder& requireExtension(const std::string& extensionName);
 
     PhysicalDeviceRequirements build() const;
+private:
+    std::vector<std::string> m_deviceExtensions;
 };
 
 #endif /* PHYSICAL_DEVICE_REQUIREMENTS_H */

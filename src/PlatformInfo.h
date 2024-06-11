@@ -8,11 +8,6 @@
 
 
 class PlatformInfo final {
-private:
-    std::vector<VkLayerProperties> m_availableLayers;
-    std::vector<VkExtensionProperties> m_availableExtensions;
-    bool m_validationLayersAvailable = false;
-	bool m_debugUtilsAvailable = false;
 public:
     explicit PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::vector<VkExtensionProperties> availableExtensions);
     
@@ -27,6 +22,11 @@ public:
     bool areValidationLayersAvailable() const;
     
     bool areDebugUtilsAvailable() const;
+private:
+    std::vector<VkLayerProperties> m_availableLayers;
+    std::vector<VkExtensionProperties> m_availableExtensions;
+    bool m_validationLayersAvailable = false;
+	bool m_debugUtilsAvailable = false;
 };
 
 template <> struct fmt::formatter<PlatformInfo>: fmt::formatter<string_view> {
