@@ -15,6 +15,7 @@
 #include <fstream>
 
 #include <fmt/core.h>
+#include <fmt/ostream.h>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -651,7 +652,7 @@ private:
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
     ) {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        fmt::println(std::cerr, "validation layer: {}", pCallbackData->pMessage);
 
         return VK_FALSE;
     }
@@ -1636,7 +1637,7 @@ int main() {
     try {
         app.run();
     } catch (const std::exception& exception) {
-        std::cerr << exception.what() << std::endl;
+        fmt::println(std::cerr, "{}", exception.what());
         return EXIT_FAILURE;
     }
 
