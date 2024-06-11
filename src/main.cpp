@@ -100,29 +100,30 @@ std::vector<const char*> convertToCStrings(const std::vector<std::string>& strin
 
 class PlatformInfo {
 private:
-    std::vector<VkLayerProperties> _availableLayers;
-    std::vector<VkExtensionProperties> _availableExtensions;
-    bool _validationLayersAvailable = false;
-	bool _debugUtilsAvailable = false;
+    std::vector<VkLayerProperties> m_availableLayers;
+    std::vector<VkExtensionProperties> m_availableExtensions;
+    bool m_validationLayersAvailable = false;
+	bool m_debugUtilsAvailable = false;
 public:
     explicit PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::vector<VkExtensionProperties> availableExtensions) 
-        : _availableLayers { availableLayers }, _availableExtensions { availableExtensions }
+        : m_availableLayers { availableLayers }
+        , m_availableExtensions { availableExtensions }
     {
         for (const auto& layerProperties : availableLayers) {
             if (strcmp(layerProperties.layerName, VK_LAYER_KHRONOS_validation) == 0) {
-                _validationLayersAvailable = true;
+                m_validationLayersAvailable = true;
             }
         }
 
         for (const auto& extensionProperties : availableExtensions) {
             if (strcmp(extensionProperties.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
-                _debugUtilsAvailable = true;
+                m_debugUtilsAvailable = true;
             }
         }
     }
     
     bool isExtensionAvailable(const char* layerName) const {
-        for (const auto& layerProperties : _availableLayers) {
+        for (const auto& layerProperties : m_availableLayers) {
             if (strcmp(layerProperties.layerName, layerName) == 0) {
                 return true;
             }
@@ -132,7 +133,7 @@ public:
     }
 
     bool isLayerAvailable(const char* extensionName) const {
-        for (const auto& extensionProperties : _availableExtensions) {
+        for (const auto& extensionProperties : m_availableExtensions) {
             if (strcmp(extensionProperties.extensionName, extensionName) == 0) {
                 return true;
             }
@@ -142,19 +143,19 @@ public:
     }
 
     const std::vector<VkLayerProperties>& getAvailableLayers() const {
-        return _availableLayers;
+        return m_availableLayers;
     }
 
     const std::vector<VkExtensionProperties>& getAvailableExtensions() const {
-        return _availableExtensions;
+        return m_availableExtensions;
     }
 
     bool areValidationLayersAvailable() const {
-        return _validationLayersAvailable;
+        return m_validationLayersAvailable;
     }
     
     bool areDebugUtilsAvailable() const {
-        return _debugUtilsAvailable;
+        return m_debugUtilsAvailable;
     }
 };
 
@@ -260,25 +261,26 @@ template <> struct fmt::formatter<PlatformInfo>: fmt::formatter<string_view> {
 
 class PlatformRequirements {
 private:
-    std::vector<std::string> instanceExtensions;
-    std::vector<std::string> instanceLayers;
+    std::vector<std::string> m_instanceExtensions;
+    std::vector<std::string> m_instanceLayers;
 
 public:
     explicit PlatformRequirements(const std::vector<std::string>& extensions, const std::vector<std::string>& layers)
-        : instanceExtensions { extensions }, instanceLayers{ layers }
+        : m_instanceExtensions { extensions }
+        , m_instanceLayers{ layers }
     {
     }
 
     const std::vector<std::string>& getExtensions() const {
-        return instanceExtensions;
+        return m_instanceExtensions;
     }
  
     const std::vector<std::string>& getLayers() const {
-        return instanceLayers;
+        return m_instanceLayers;
     }
 
     bool isEmpty() {
-        return instanceExtensions.empty() && instanceLayers.empty();
+        return m_instanceExtensions.empty() && m_instanceLayers.empty();
     }
 };
 
@@ -315,49 +317,49 @@ template <> struct fmt::formatter<PlatformRequirements>: fmt::formatter<string_v
 
 class PlatformRequirementsBuilder {
 private:
-    std::vector<std::string> instanceExtensions;
-    std::vector<std::string> instanceLayers;
+    std::vector<std::string> m_instanceExtensions;
+    std::vector<std::string> m_instanceLayers;
 public:
     explicit PlatformRequirementsBuilder() {
         if (vk_platform::detectOperatingSystem() == vk_platform::Platform::Apple) {
-            instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-            instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+            m_instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            m_instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         }
     }
 
     PlatformRequirementsBuilder& requireExtension(const std::string& extensionName) {
-        instanceExtensions.push_back(extensionName);
+        m_instanceExtensions.push_back(extensionName);
         
         return *this;
     }
 
     PlatformRequirementsBuilder& requireLayer(const std::string& layerName) {
-        instanceLayers.push_back(layerName);
+        m_instanceLayers.push_back(layerName);
         
         return *this;
     }
 
     PlatformRequirementsBuilder& requireDebuggingExtensions() {
-        instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        m_instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
         return *this;
     }
 
     PlatformRequirementsBuilder& requireValidationLayers() {
-        instanceLayers.push_back(VK_LAYER_KHRONOS_validation);
-        instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        m_instanceLayers.push_back(VK_LAYER_KHRONOS_validation);
+        m_instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
         return *this;
     }
 
     PlatformRequirementsBuilder& includeFrom(const PlatformRequirements& other) {
-        instanceExtensions.insert(
-            instanceExtensions.end(), 
+        m_instanceExtensions.insert(
+            m_instanceExtensions.end(), 
             other.getExtensions().begin(), 
             other.getExtensions().end()
         );
-        instanceLayers.insert(
-            instanceLayers.end(), 
+        m_instanceLayers.insert(
+            m_instanceLayers.end(), 
             other.getLayers().begin(), 
             other.getLayers().end()
         );
@@ -367,7 +369,7 @@ public:
 
     PlatformRequirements build() const {
         // TODO: Check for move semantics.
-        return PlatformRequirements(instanceExtensions, instanceLayers);
+        return PlatformRequirements(m_instanceExtensions, m_instanceLayers);
     }
 };
 
@@ -457,15 +459,15 @@ private:
 
 class PhysicalDeviceProperties {
 private:
-    std::vector<VkExtensionProperties> deviceExtensions;
+    std::vector<VkExtensionProperties> m_deviceExtensions;
 public:
-    explicit PhysicalDeviceProperties(std::vector<VkExtensionProperties> extensions) 
-        : deviceExtensions { extensions } 
+    explicit PhysicalDeviceProperties(std::vector<VkExtensionProperties> deviceExtensions) 
+        : m_deviceExtensions { deviceExtensions } 
     {
     }
 
     const std::vector<VkExtensionProperties>& getExtensions() const {
-        return deviceExtensions;
+        return m_deviceExtensions;
     }
 };
 
@@ -481,17 +483,19 @@ template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<stri
 
 class PhysicalDeviceRequirements {
 private:
-    std::vector<std::string> deviceExtensions;
+    std::vector<std::string> m_deviceExtensions;
 public:
-    explicit PhysicalDeviceRequirements(std::vector<std::string> extensions) : deviceExtensions { extensions } {
+    explicit PhysicalDeviceRequirements(std::vector<std::string> deviceExtensions) 
+        : m_deviceExtensions { deviceExtensions }
+    {
     }
 
     const std::vector<std::string>& getExtensions() const {
-        return deviceExtensions;
+        return m_deviceExtensions;
     }
 
     bool isEmpty() const {
-        return deviceExtensions.empty();
+        return m_deviceExtensions.empty();
     }
 };
 
@@ -507,24 +511,24 @@ template <> struct fmt::formatter<PhysicalDeviceRequirements>: fmt::formatter<st
 
 class PhysicalDeviceRequirementsBuilder {
 private:
-    std::vector<std::string> deviceExtensions;
+    std::vector<std::string> m_deviceExtensions;
 public:
     explicit PhysicalDeviceRequirementsBuilder() {
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
         if (vk_platform::detectOperatingSystem() == vk_platform::Platform::Apple) {
-            deviceExtensions.emplace_back(VK_KHR_portability_subset);
+            m_deviceExtensions.emplace_back(VK_KHR_portability_subset);
         }
     }
 
     PhysicalDeviceRequirementsBuilder& requireExtension(const std::string& extensionName) {
-        deviceExtensions.emplace_back(extensionName);
+        m_deviceExtensions.emplace_back(extensionName);
         
         return *this;
     }
 
     PhysicalDeviceRequirements build() const {
         // TODO: Check move semantics.
-        return PhysicalDeviceRequirements(deviceExtensions);
+        return PhysicalDeviceRequirements(m_deviceExtensions);
     }
 };
 
@@ -574,7 +578,7 @@ public:
     }
 };
 
-struct QueueFamilyIndices {
+struct QueueFamilyIndices final {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
 
@@ -583,7 +587,7 @@ struct QueueFamilyIndices {
     }
 };
 
-struct SwapChainSupportDetails {
+struct SwapChainSupportDetails final {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
