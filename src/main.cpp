@@ -102,7 +102,7 @@ std::vector<const char*> convertToCStrings(const std::vector<std::string>& strin
     return cStrings;
 }
 
-class PlatformInfo {
+class PlatformInfo final {
 private:
     std::vector<VkLayerProperties> m_availableLayers;
     std::vector<VkExtensionProperties> m_availableExtensions;
@@ -263,11 +263,10 @@ template <> struct fmt::formatter<PlatformInfo>: fmt::formatter<string_view> {
     }
 };
 
-class PlatformRequirements {
+class PlatformRequirements final {
 private:
     std::vector<std::string> m_instanceExtensions;
     std::vector<std::string> m_instanceLayers;
-
 public:
     explicit PlatformRequirements(const std::vector<std::string>& extensions, const std::vector<std::string>& layers)
         : m_instanceExtensions { extensions }
@@ -319,7 +318,7 @@ template <> struct fmt::formatter<PlatformRequirements>: fmt::formatter<string_v
     }
 };
 
-class PlatformRequirementsBuilder {
+class PlatformRequirementsBuilder final {
 private:
     std::vector<std::string> m_instanceExtensions;
     std::vector<std::string> m_instanceLayers;
@@ -461,7 +460,7 @@ private:
     }
 };
 
-class PhysicalDeviceProperties {
+class PhysicalDeviceProperties final {
 private:
     std::vector<VkExtensionProperties> m_deviceExtensions;
 public:
@@ -485,7 +484,7 @@ template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<stri
     }
 };
 
-class PhysicalDeviceRequirements {
+class PhysicalDeviceRequirements final {
 private:
     std::vector<std::string> m_deviceExtensions;
 public:
@@ -513,7 +512,7 @@ template <> struct fmt::formatter<PhysicalDeviceRequirements>: fmt::formatter<st
     }
 };
 
-class PhysicalDeviceRequirementsBuilder {
+class PhysicalDeviceRequirementsBuilder final {
 private:
     std::vector<std::string> m_deviceExtensions;
 public:
@@ -665,7 +664,7 @@ private:
     void mainLoop() {
         while (!glfwWindowShouldClose(m_window)) {
             glfwPollEvents();
-            this->drawFrame();
+            this->draw();
         }
 
         vkDeviceWaitIdle(m_device);
@@ -1196,7 +1195,8 @@ private:
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
         auto shaderModule = VkShaderModule {};
-        if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        VkResult result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create shader module!");
         }
 
@@ -1230,7 +1230,8 @@ private:
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
 
-        if (vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        VkResult result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
@@ -1406,7 +1407,14 @@ private:
             framebufferInfo.height = m_swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+            auto result = vkCreateFramebuffer(
+                m_device,
+                &framebufferInfo,
+                nullptr,
+                &m_swapChainFramebuffers[i]
+            );
+
+            if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
@@ -1456,9 +1464,11 @@ private:
         renderPassInfo.renderArea.offset = VkOffset2D { 0, 0 };
         renderPassInfo.renderArea.extent = m_swapChainExtent;
 
-        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        auto clearValue = VkClearValue {};
+        clearValue.color = VkClearColorValue { { 0.0f, 0.0f, 0.0f, 1.0f } };
+
         renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        renderPassInfo.pClearValues = &clearValue;
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
@@ -1499,16 +1509,24 @@ private:
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS
-            ) {
-                throw std::runtime_error("failed to create synchronization objects for a frame!");
+            auto result = vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("failed to create in-flight semaphore synchronization object");
+            }
+
+            result = vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("failed to create render finished synchronization object");
+            }
+
+            result = vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("failed to create in-flight fence synchronization object");
             }
         }
     }
 
-    void drawFrame() {
+    void draw() {
         vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
