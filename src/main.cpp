@@ -22,6 +22,7 @@
 #include "PhysicalDeviceProperties.h"
 #include "PhysicalDeviceRequirements.h"
 #include "PlatformRequirements.h"
+#include "PlatformInfoOps.h"
 
 
 const uint32_t WIDTH = 800;
@@ -85,7 +86,7 @@ std::vector<const char*> convertToCStrings(const std::vector<std::string>& strin
     
     return cStrings;
 }
-
+/*
 using MissingPlatformRequirements = PlatformRequirements;
 
 class PlatformInfoOps {
@@ -169,7 +170,7 @@ private:
         return instanceExtensionProperties;
     }
 };
-
+*/
 
 using MissingPhysicalDeviceRequirements = PhysicalDeviceRequirements;
 

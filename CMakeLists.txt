@@ -89,6 +89,7 @@ target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
     src/PhysicalDeviceProperties.cpp
     src/PhysicalDeviceRequirements.cpp
     src/PlatformInfo.cpp
+    src/PlatformInfoOps.cpp
     src/PlatformRequirements.cpp
 )
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle glfw)
