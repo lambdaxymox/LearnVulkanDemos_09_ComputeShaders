@@ -33,4 +33,4 @@ template <> struct fmt::formatter<PlatformInfo>: fmt::formatter<string_view> {
     auto format(const PlatformInfo& platformInfo, format_context& ctx) const -> format_context::iterator;
 };
 
-#endif
+#endif /* PLATFORM_INFO_H */

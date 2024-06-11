@@ -34,4 +34,4 @@ public:
     PhysicalDeviceRequirements build() const;
 };
 
-#endif
+#endif /* PHYSICAL_DEVICE_REQUIREMENTS_H */

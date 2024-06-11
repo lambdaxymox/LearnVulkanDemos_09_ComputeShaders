@@ -23,6 +23,7 @@
 #include "PhysicalDeviceRequirements.h"
 #include "PlatformRequirements.h"
 #include "PlatformInfoOps.h"
+#include "PhysicalDeviceInfoOps.h"
 
 
 const uint32_t WIDTH = 800;
@@ -86,7 +87,7 @@ std::vector<const char*> convertToCStrings(const std::vector<std::string>& strin
     
     return cStrings;
 }
-
+/*
 using MissingPhysicalDeviceRequirements = PhysicalDeviceRequirements;
 
 class PhysicalDeviceInfoOps {
@@ -131,7 +132,7 @@ public:
         return PhysicalDeviceRequirements(missingExtensionNames);
     }
 };
-
+*/
 struct QueueFamilyIndices final {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;

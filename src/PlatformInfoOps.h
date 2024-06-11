@@ -7,7 +7,9 @@
 #include <vector>
 #include <string>
 
+
 using MissingPlatformRequirements = PlatformRequirements;
+
 
 class PlatformInfoOps {
 public:
@@ -23,4 +25,4 @@ private:
     static std::vector<VkExtensionProperties> getAvailableVulkanInstanceExtensions();
 };
 
-#endif
+#endif /* PLATFORM_INFO_OPS_H */

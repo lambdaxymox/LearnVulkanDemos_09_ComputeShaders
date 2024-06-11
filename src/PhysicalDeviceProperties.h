@@ -20,4 +20,4 @@ template <> struct fmt::formatter<PhysicalDeviceProperties>: fmt::formatter<stri
     auto format(const PhysicalDeviceProperties& deviceProperties, format_context& ctx) const -> format_context::iterator;
 };
 
-#endif
+#endif /* PHYSICAL_DEVICE_PROPERTIES_H */
