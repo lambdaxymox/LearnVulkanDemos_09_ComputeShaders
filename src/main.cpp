@@ -55,6 +55,7 @@ VkResult CreateDebugUtilsMessengerEXT(
     auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT")
     );
+
     if (func != nullptr) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
@@ -70,6 +71,7 @@ void DestroyDebugUtilsMessengerEXT(
     auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
     );
+
     if (func != nullptr) {
         func(instance, debugMessenger, pAllocator);
     }
