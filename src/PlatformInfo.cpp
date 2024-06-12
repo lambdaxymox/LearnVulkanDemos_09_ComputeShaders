@@ -97,7 +97,7 @@ PlatformInfo::PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::
     , m_availableExtensions { availableExtensions }
 {
     for (const auto& layerProperties : availableLayers) {
-        if (strcmp(layerProperties.layerName, platform::VK_LAYER_KHRONOS_validation) == 0) {
+        if (strcmp(layerProperties.layerName, platform::VK_LAYER_KHRONOS_validation.data()) == 0) {
             m_validationLayersAvailable = true;
         }
     }

@@ -1,10 +1,13 @@
 #ifndef VK_PLATFORM_H
 #define VK_PLATFORM_H
 
+#include <string>
+
+
 namespace platform {
 
-extern const char* VK_LAYER_KHRONOS_validation;
-extern const char* VK_KHR_portability_subset;
+extern const std::string VK_LAYER_KHRONOS_validation;
+extern const std::string VK_KHR_portability_subset;
 
 enum class Platform {
     Apple,
