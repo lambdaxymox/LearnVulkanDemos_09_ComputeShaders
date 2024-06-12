@@ -108,7 +108,7 @@ PlatformInfo::PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::
         }
     }
 }
-    
+
 bool PlatformInfo::isExtensionAvailable(const char* layerName) const {
     for (const auto& layerProperties : m_availableLayers) {
         if (strcmp(layerProperties.layerName, layerName) == 0) {
