@@ -1,5 +1,5 @@
-#include "PlatformInfo.h"
-#include "platform.h"
+#include "VulkanInstanceProperties.h"
+#include "VulkanPlatform.h"
 
 
 template <> struct fmt::formatter<VkLayerProperties> {
@@ -92,12 +92,12 @@ template <> struct fmt::formatter<std::vector<VkExtensionProperties>> {
 };
 
 
-PlatformInfo::PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::vector<VkExtensionProperties> availableExtensions) 
+VulkanInstanceProperties::VulkanInstanceProperties(std::vector<VkLayerProperties> availableLayers, std::vector<VkExtensionProperties> availableExtensions) 
     : m_availableLayers { availableLayers }
     , m_availableExtensions { availableExtensions }
 {
     for (const auto& layerProperties : availableLayers) {
-        if (strcmp(layerProperties.layerName, platform::VK_LAYER_KHRONOS_validation.data()) == 0) {
+        if (strcmp(layerProperties.layerName, VulkanPlatform::VK_LAYER_KHRONOS_validation.data()) == 0) {
             m_validationLayersAvailable = true;
         }
     }
@@ -109,7 +109,7 @@ PlatformInfo::PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::
     }
 }
 
-bool PlatformInfo::isExtensionAvailable(const char* layerName) const {
+bool VulkanInstanceProperties::isExtensionAvailable(const char* layerName) const {
     for (const auto& layerProperties : m_availableLayers) {
         if (strcmp(layerProperties.layerName, layerName) == 0) {
             return true;
@@ -119,7 +119,7 @@ bool PlatformInfo::isExtensionAvailable(const char* layerName) const {
     return false;
 }
 
-bool PlatformInfo::isLayerAvailable(const char* extensionName) const {
+bool VulkanInstanceProperties::isLayerAvailable(const char* extensionName) const {
     for (const auto& extensionProperties : m_availableExtensions) {
         if (strcmp(extensionProperties.extensionName, extensionName) == 0) {
             return true;
@@ -129,26 +129,26 @@ bool PlatformInfo::isLayerAvailable(const char* extensionName) const {
     return false;
 }
 
-const std::vector<VkLayerProperties>& PlatformInfo::getAvailableLayers() const {
+const std::vector<VkLayerProperties>& VulkanInstanceProperties::getAvailableLayers() const {
     return m_availableLayers;
 }
 
-const std::vector<VkExtensionProperties>& PlatformInfo::getAvailableExtensions() const {
+const std::vector<VkExtensionProperties>& VulkanInstanceProperties::getAvailableExtensions() const {
     return m_availableExtensions;
 }
 
-bool PlatformInfo::areValidationLayersAvailable() const {
+bool VulkanInstanceProperties::areValidationLayersAvailable() const {
     return m_validationLayersAvailable;
 }
     
-bool PlatformInfo::areDebugUtilsAvailable() const {
+bool VulkanInstanceProperties::areDebugUtilsAvailable() const {
     return m_debugUtilsAvailable;
 }
 
-auto fmt::formatter<PlatformInfo>::format(const PlatformInfo& platformInfo, format_context& ctx) const -> format_context::iterator {
+auto fmt::formatter<VulkanInstanceProperties>::format(const VulkanInstanceProperties& platformInfo, format_context& ctx) const -> format_context::iterator {
     return fmt::format_to(
         ctx.out(),
-        "PlatformInfo {{ availableLayers: {}, availableExtensions: {} }}",
+        "VulkanInstanceProperties {{ availableLayers: {}, availableExtensions: {} }}",
         platformInfo.getAvailableLayers(), 
         platformInfo.getAvailableExtensions()
     );

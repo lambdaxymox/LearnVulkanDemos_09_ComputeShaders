@@ -1,5 +1,5 @@
-#ifndef PLATFORM_INFO_H
-#define PLATFORM_INFO_H
+#ifndef VULKAN_INSTANCE_PROPERTIES_H
+#define VULKAN_INSTANCE_PROPERTIES_H
 
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -7,9 +7,9 @@
 #include <fmt/core.h>
 
 
-class PlatformInfo final {
+class VulkanInstanceProperties final {
 public:
-    explicit PlatformInfo(std::vector<VkLayerProperties> availableLayers, std::vector<VkExtensionProperties> availableExtensions);
+    explicit VulkanInstanceProperties(std::vector<VkLayerProperties> availableLayers, std::vector<VkExtensionProperties> availableExtensions);
     
     bool isExtensionAvailable(const char* layerName) const;
 
@@ -29,8 +29,8 @@ private:
 	bool m_debugUtilsAvailable = false;
 };
 
-template <> struct fmt::formatter<PlatformInfo>: fmt::formatter<string_view> {
-    auto format(const PlatformInfo& platformInfo, format_context& ctx) const -> format_context::iterator;
+template <> struct fmt::formatter<VulkanInstanceProperties>: fmt::formatter<string_view> {
+    auto format(const VulkanInstanceProperties& platformInfo, format_context& ctx) const -> format_context::iterator;
 };
 
-#endif /* PLATFORM_INFO_H */
+#endif /* VULKAN_INSTANCE_PROPERTIES_H */

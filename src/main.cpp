@@ -17,22 +17,22 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include "platform.h"
-#include "PlatformInfo.h"
 #include "PhysicalDeviceProperties.h"
 #include "PhysicalDeviceRequirements.h"
-#include "PlatformRequirements.h"
-#include "PlatformCapabilities.h"
+#include "VulkanInstanceProperties.h"
+#include "VulkanInstanceRequirements.h"
+#include "VulkanPlatform.h"
+#include "OsPlatform.h"
 
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::vector<std::string> validationLayers = { 
-    platform::VK_LAYER_KHRONOS_validation
+const std::vector<std::string> validationLayers = std::vector<std::string> { 
+    VulkanPlatform::VK_LAYER_KHRONOS_validation
 };
 
-const std::vector<const char*> deviceExtensions = {
+const std::vector<const char*> deviceExtensions = std::vector<const char*> {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
@@ -231,7 +231,7 @@ private:
         glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
     }
 
-    PlatformRequirements getVulkanInstanceExtensionsRequiredByGLFW() const {
+    VulkanInstanceRequirements getVulkanInstanceExtensionsRequiredByGLFW() const {
         uint32_t requiredExtensionCount = 0;
         const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
         auto requiredExtensions = std::vector<std::string> {};
@@ -239,7 +239,7 @@ private:
             requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
         }
 
-        auto builder = PlatformRequirementsBuilder {};
+        auto builder = VulkanInstanceRequirementsBuilder {};
         for (const auto& extensionName : requiredExtensions) {
             builder.requireExtension(extensionName);
         }
@@ -249,29 +249,29 @@ private:
 
     VkInstanceCreateFlags defaultInstanceCreateFlags() const {
         auto flags = 0;
-        if (platform::detectOperatingSystem() == platform::Platform::Apple) {
+        if (Os::detectOperatingSystem() == Os::Platform::Apple) {
             flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
         return flags;
     }
 
-    PlatformRequirements getInstanceRequirements() const {
+    VulkanInstanceRequirements getInstanceRequirements() const {
         auto vulkanExtensionsRequiredByGLFW = this->getVulkanInstanceExtensionsRequiredByGLFW();
-        auto platformRequirements = PlatformRequirementsBuilder()
+        auto instanceRequirements = VulkanInstanceRequirementsBuilder()
             .requireValidationLayers()
             .requireDebuggingExtensions()
             .includeFrom(vulkanExtensionsRequiredByGLFW)
             .build();
-        auto platformInfo = PlatformCapabilities::getPlatformInfo();
+        auto instanceInfo = VulkanPlatform::getVulkanInstanceInfo();
 
-        return platformRequirements;
+        return instanceRequirements;
     }
 
     bool checkValidationLayerSupport() const {
-        auto platformInfo = PlatformCapabilities::getPlatformInfo();
+        auto instanceInfo = VulkanPlatform::getVulkanInstanceInfo();
 
-        return platformInfo.areValidationLayersAvailable();
+        return instanceInfo.areValidationLayersAvailable();
     }
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) {
@@ -287,6 +287,7 @@ private:
 
         auto enabledLayerCount = 0;
         auto enabledLayerNames = std::vector<std::string> {};
+
         if (enableValidationLayers) {
             enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             enabledLayerNames = validationLayers;
@@ -298,10 +299,10 @@ private:
     }
 
     void createInstance() {
-        auto platformInfo = PlatformCapabilities::getPlatformInfo();    
+        auto instanceInfo = VulkanPlatform::getVulkanInstanceInfo();
         auto instanceRequirements = this->getInstanceRequirements();
-        auto missingRequirements = PlatformCapabilities::detectMissingInstanceRequirements(
-            platformInfo,
+        auto missingRequirements = VulkanPlatform::detectMissingInstanceRequirements(
+            instanceInfo,
             instanceRequirements
         );
         if (!missingRequirements.isEmpty()) {
@@ -338,7 +339,7 @@ private:
 
         auto result = vkCreateInstance(&createInfo, nullptr, &m_instance);
         if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create Vulkan instance.");
+            throw std::runtime_error(fmt::format("Failed to create Vulkan instance."));
         }
 
         m_isInitialized = true;
@@ -563,9 +564,9 @@ private:
         
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        auto deviceExtensionProperties = PlatformCapabilities::getAvailableVulkanDeviceExtensions(m_physicalDevice);
+        auto deviceExtensionProperties = VulkanPlatform::getAvailableVulkanDeviceExtensions(m_physicalDevice);
         auto requiredDeviceExtensions = this->getDeviceRequirements(m_physicalDevice);
-        auto missingRequirements = PlatformCapabilities::detectMissingRequiredDeviceExtensions(
+        auto missingRequirements = VulkanPlatform::detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
             requiredDeviceExtensions
         );

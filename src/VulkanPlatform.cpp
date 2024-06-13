@@ -1,16 +1,16 @@
-#include "PlatformCapabilities.h"
+#include "VulkanPlatform.h"
 
 
-PlatformInfo PlatformCapabilities::getPlatformInfo() {
-    const auto availableLayers = PlatformCapabilities::getAvailableVulkanInstanceLayers();
-    const auto availableExtensions = PlatformCapabilities::getAvailableVulkanInstanceExtensions();
+VulkanInstanceProperties VulkanPlatform::getVulkanInstanceInfo() {
+    const auto availableLayers = VulkanPlatform::getAvailableVulkanInstanceLayers();
+    const auto availableExtensions = VulkanPlatform::getAvailableVulkanInstanceExtensions();
         
-    PlatformInfo platformInfo { availableLayers, availableExtensions };
+    VulkanInstanceProperties instanceInfo { availableLayers, availableExtensions };
 
-    return platformInfo;
+    return instanceInfo;
 }
 
-PhysicalDeviceProperties PlatformCapabilities::getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) {
+PhysicalDeviceProperties VulkanPlatform::getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) {
     auto deviceExtensionProperties =  std::vector<VkExtensionProperties> {};
     uint32_t numInstanceExtensions = 0;
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &numInstanceExtensions, nullptr);
@@ -27,7 +27,7 @@ PhysicalDeviceProperties PlatformCapabilities::getAvailableVulkanDeviceExtension
     return PhysicalDeviceProperties(deviceExtensionProperties);
 }
 
-std::vector<VkLayerProperties> PlatformCapabilities::getAvailableVulkanInstanceLayers() {
+std::vector<VkLayerProperties> VulkanPlatform::getAvailableVulkanInstanceLayers() {
     auto instanceLayerProperties = std::vector<VkLayerProperties> {};
     uint32_t numInstanceExtensions = 0;
     vkEnumerateInstanceLayerProperties(&numInstanceExtensions, nullptr);
@@ -42,7 +42,7 @@ std::vector<VkLayerProperties> PlatformCapabilities::getAvailableVulkanInstanceL
     return instanceLayerProperties;
 }
 
-std::vector<VkExtensionProperties> PlatformCapabilities::getAvailableVulkanInstanceExtensions() {
+std::vector<VkExtensionProperties> VulkanPlatform::getAvailableVulkanInstanceExtensions() {
     auto instanceExtensionProperties = std::vector<VkExtensionProperties> {};
     uint32_t numInstanceExtensions = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &numInstanceExtensions, nullptr);
@@ -60,12 +60,12 @@ std::vector<VkExtensionProperties> PlatformCapabilities::getAvailableVulkanInsta
 
 
 
-MissingPlatformRequirements PlatformCapabilities::detectMissingInstanceRequirements(
-    const PlatformInfo& platformInfo,
-    const PlatformRequirements& platformRequirements
+MissingPlatformRequirements VulkanPlatform::detectMissingInstanceRequirements(
+    const VulkanInstanceProperties& instanceInfo,
+    const VulkanInstanceRequirements& platformRequirements
 ) {
     auto missingExtensionNames = std::vector<std::string> {};
-    auto availableExtensions = platformInfo.getAvailableExtensions();
+    auto availableExtensions = instanceInfo.getAvailableExtensions();
     for (const auto& extensionName : platformRequirements.getExtensions()) {
             auto found = std::find_if(
                 std::begin(availableExtensions),
@@ -81,7 +81,7 @@ MissingPlatformRequirements PlatformCapabilities::detectMissingInstanceRequireme
     }
 
     auto missingLayerNames = std::vector<std::string> {};
-    auto availableLayers = platformInfo.getAvailableLayers();
+    auto availableLayers = instanceInfo.getAvailableLayers();
     for (const auto& layerName : platformRequirements.getLayers()) {
             auto found = std::find_if(
                 std::begin(availableLayers),
@@ -99,7 +99,7 @@ MissingPlatformRequirements PlatformCapabilities::detectMissingInstanceRequireme
     return MissingPlatformRequirements(missingExtensionNames, missingLayerNames);
 }
 
-MissingPhysicalDeviceRequirements PlatformCapabilities::detectMissingRequiredDeviceExtensions(
+MissingPhysicalDeviceRequirements VulkanPlatform::detectMissingRequiredDeviceExtensions(
     const PhysicalDeviceProperties& physicalDeviceProperties,
     const PhysicalDeviceRequirements& physicalDeviceRequirements
 ) {

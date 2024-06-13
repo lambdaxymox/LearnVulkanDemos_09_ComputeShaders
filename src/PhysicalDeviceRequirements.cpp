@@ -1,6 +1,6 @@
 #include "PhysicalDeviceRequirements.h"
-
-#include "platform.h"
+#include "VulkanPlatform.h"
+#include "OsPlatform.h"
 
 
 template <> struct fmt::formatter<std::vector<std::string>> {
@@ -69,8 +69,8 @@ bool PhysicalDeviceRequirements::isEmpty() const {
 
 PhysicalDeviceRequirementsBuilder::PhysicalDeviceRequirementsBuilder() {
     // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
-    if (platform::detectOperatingSystem() == platform::Platform::Apple) {
-        m_deviceExtensions.emplace_back(platform::VK_KHR_portability_subset);
+    if (Os::detectOperatingSystem() == Os::Platform::Apple) {
+        m_deviceExtensions.emplace_back(VulkanPlatform::VK_KHR_portability_subset);
     }
 }
 
