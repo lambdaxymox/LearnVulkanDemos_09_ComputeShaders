@@ -22,8 +22,7 @@
 #include "PhysicalDeviceProperties.h"
 #include "PhysicalDeviceRequirements.h"
 #include "PlatformRequirements.h"
-#include "PlatformInfoOps.h"
-#include "PhysicalDeviceInfoOps.h"
+#include "PlatformCapabilities.h"
 
 
 const uint32_t WIDTH = 800;
@@ -264,13 +263,13 @@ private:
             .requireDebuggingExtensions()
             .includeFrom(vulkanExtensionsRequiredByGLFW)
             .build();
-        auto platformInfo = PlatformInfoOps::getPlatformInfo();
+        auto platformInfo = PlatformCapabilities::getPlatformInfo();
 
         return platformRequirements;
     }
 
     bool checkValidationLayerSupport() const {
-        auto platformInfo = PlatformInfoOps::getPlatformInfo();
+        auto platformInfo = PlatformCapabilities::getPlatformInfo();
 
         return platformInfo.areValidationLayersAvailable();
     }
@@ -299,9 +298,9 @@ private:
     }
 
     void createInstance() {
-        auto platformInfo = PlatformInfoOps::getPlatformInfo();    
+        auto platformInfo = PlatformCapabilities::getPlatformInfo();    
         auto instanceRequirements = this->getInstanceRequirements();
-        auto missingRequirements = PlatformInfoOps::detectMissingInstanceRequirements(
+        auto missingRequirements = PlatformCapabilities::detectMissingInstanceRequirements(
             platformInfo,
             instanceRequirements
         );
@@ -564,9 +563,9 @@ private:
         
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        auto deviceExtensionProperties = PhysicalDeviceInfoOps::getAvailableVulkanDeviceExtensions(m_physicalDevice);
+        auto deviceExtensionProperties = PlatformCapabilities::getAvailableVulkanDeviceExtensions(m_physicalDevice);
         auto requiredDeviceExtensions = this->getDeviceRequirements(m_physicalDevice);
-        auto missingRequirements = PhysicalDeviceInfoOps::detectMissingRequiredDeviceExtensions(
+        auto missingRequirements = PlatformCapabilities::detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
             requiredDeviceExtensions
         );

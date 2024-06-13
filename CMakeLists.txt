@@ -86,12 +86,11 @@ add_executable(LearnVulkanDemos_01_HelloTriangle)
 target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
     src/platform.cpp
     src/main.cpp
-    src/PhysicalDeviceInfoOps.cpp
     src/PhysicalDeviceProperties.cpp
     src/PhysicalDeviceRequirements.cpp
     src/PlatformInfo.cpp
-    src/PlatformInfoOps.cpp
     src/PlatformRequirements.cpp
+    src/PlatformCapabilities.cpp
 )
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle glfw)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle glm)
