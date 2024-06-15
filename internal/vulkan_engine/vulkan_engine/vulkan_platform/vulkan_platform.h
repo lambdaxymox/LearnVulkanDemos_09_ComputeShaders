@@ -4,7 +4,9 @@
 #include "operating_system.h"
 #include "vulkan_instance_properties.h"
 #include "physical_device_properties.h"
+#include "physical_device_requirements_builder.h"
 #include "physical_device_requirements.h"
+#include "vulkan_instance_requirements_builder.h"
 #include "vulkan_instance_requirements.h"
 
 

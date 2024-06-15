@@ -25,26 +25,6 @@ private:
     std::vector<std::string> m_instanceLayers;
 };
 
-class VulkanInstanceRequirementsBuilder final {
-public:
-    explicit VulkanInstanceRequirementsBuilder();
-
-    VulkanInstanceRequirementsBuilder& requireExtension(const std::string& extensionName);
-
-    VulkanInstanceRequirementsBuilder& requireLayer(const std::string& layerName);
-
-    VulkanInstanceRequirementsBuilder& requireDebuggingExtensions();
-
-    VulkanInstanceRequirementsBuilder& requireValidationLayers();
-
-    VulkanInstanceRequirementsBuilder& includeFrom(const VulkanInstanceRequirements& other);
-
-    VulkanInstanceRequirements build() const;
-private:
-    std::vector<std::string> m_instanceExtensions;
-    std::vector<std::string> m_instanceLayers;
-};
-
 
 }
 

@@ -5,10 +5,15 @@ set(CMAKE_CXX_STANDARD 23)
 add_library(vulkan_engine SHARED)
 target_sources(vulkan_engine PRIVATE
     vulkan_engine/vulkan_platform/physical_device_properties.cpp
+    vulkan_engine/vulkan_platform/physical_device_requirements_builder.cpp
     vulkan_engine/vulkan_platform/physical_device_requirements.cpp
     vulkan_engine/vulkan_platform/vulkan_instance_properties.cpp
+    vulkan_engine/vulkan_platform/vulkan_instance_requirements_builder.cpp
     vulkan_engine/vulkan_platform/vulkan_instance_requirements.cpp
     vulkan_engine/vulkan_platform/vulkan_platform.cpp
+)
+target_sources(vulkan_engine PRIVATE
+    vulkan_engine/vulkan_platform_impl_fmt.cpp
 )
 
 find_package(Vulkan REQUIRED)

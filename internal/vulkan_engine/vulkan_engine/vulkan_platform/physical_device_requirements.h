@@ -22,17 +22,6 @@ private:
     std::vector<std::string> m_deviceExtensions;
 };
 
-class PhysicalDeviceRequirementsBuilder final {
-public:
-    explicit PhysicalDeviceRequirementsBuilder();
-
-    PhysicalDeviceRequirementsBuilder& requireExtension(const std::string& extensionName);
-
-    PhysicalDeviceRequirements build() const;
-private:
-    std::vector<std::string> m_deviceExtensions;
-};
-
 
 }
 
