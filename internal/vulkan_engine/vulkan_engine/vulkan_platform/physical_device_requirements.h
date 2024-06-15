@@ -4,8 +4,11 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
-#include <string_view>
-#include <fmt/core.h>
+
+
+namespace VulkanEngine {
+
+namespace VulkanPlatform {
 
 
 class PhysicalDeviceRequirements final {
@@ -19,10 +22,6 @@ private:
     std::vector<std::string> m_deviceExtensions;
 };
 
-template <> struct fmt::formatter<PhysicalDeviceRequirements>: fmt::formatter<string_view> {
-    auto format(const PhysicalDeviceRequirements& deviceRequirements, format_context& ctx) const -> format_context::iterator;
-};
-
 class PhysicalDeviceRequirementsBuilder final {
 public:
     explicit PhysicalDeviceRequirementsBuilder();
@@ -33,5 +32,10 @@ public:
 private:
     std::vector<std::string> m_deviceExtensions;
 };
+
+
+}
+
+}
 
 #endif /* PHYSICAL_DEVICE_REQUIREMENTS_H */

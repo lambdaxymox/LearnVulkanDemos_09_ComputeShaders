@@ -1,7 +1,10 @@
 #ifndef OS_PLATFORM_H
 #define OS_PLATFORM_H
 
-namespace Os {
+namespace VulkanEngine {
+
+namespace VulkanPlatform {
+
 
 enum class Platform {
     Apple,
@@ -21,6 +24,9 @@ constexpr Platform detectOperatingSystem() {
         return Platform::Unknown;
     #endif
 }
+
+}
+
 
 }
 

@@ -4,7 +4,11 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
-#include <fmt/core.h>
+
+
+namespace VulkanEngine {
+
+namespace VulkanPlatform {
 
 
 class VulkanInstanceProperties final {
@@ -29,8 +33,9 @@ private:
 	bool m_debugUtilsAvailable = false;
 };
 
-template <> struct fmt::formatter<VulkanInstanceProperties>: fmt::formatter<string_view> {
-    auto format(const VulkanInstanceProperties& platformInfo, format_context& ctx) const -> format_context::iterator;
-};
+
+}
+
+}
 
 #endif /* VULKAN_INSTANCE_PROPERTIES_H */

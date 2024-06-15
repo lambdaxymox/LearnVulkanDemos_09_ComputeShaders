@@ -1,7 +1,13 @@
-#include "VulkanPlatform.h"
+#include "vulkan_platform.h"
 
 
-VulkanInstanceProperties VulkanPlatform::getVulkanInstanceInfo() {
+using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
+using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
+using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatformRequirements;
+using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
+
+
+VulkanInstanceProperties VulkanEngine::VulkanPlatform::getVulkanInstanceInfo() {
     const auto availableLayers = VulkanPlatform::getAvailableVulkanInstanceLayers();
     const auto availableExtensions = VulkanPlatform::getAvailableVulkanInstanceExtensions();
         
@@ -10,7 +16,7 @@ VulkanInstanceProperties VulkanPlatform::getVulkanInstanceInfo() {
     return instanceInfo;
 }
 
-PhysicalDeviceProperties VulkanPlatform::getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) {
+PhysicalDeviceProperties VulkanEngine::VulkanPlatform::getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) {
     auto deviceExtensionProperties =  std::vector<VkExtensionProperties> {};
     uint32_t numInstanceExtensions = 0;
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &numInstanceExtensions, nullptr);
@@ -27,7 +33,7 @@ PhysicalDeviceProperties VulkanPlatform::getAvailableVulkanDeviceExtensions(VkPh
     return PhysicalDeviceProperties(deviceExtensionProperties);
 }
 
-std::vector<VkLayerProperties> VulkanPlatform::getAvailableVulkanInstanceLayers() {
+std::vector<VkLayerProperties> VulkanEngine::VulkanPlatform::getAvailableVulkanInstanceLayers() {
     auto instanceLayerProperties = std::vector<VkLayerProperties> {};
     uint32_t numInstanceExtensions = 0;
     vkEnumerateInstanceLayerProperties(&numInstanceExtensions, nullptr);
@@ -42,7 +48,7 @@ std::vector<VkLayerProperties> VulkanPlatform::getAvailableVulkanInstanceLayers(
     return instanceLayerProperties;
 }
 
-std::vector<VkExtensionProperties> VulkanPlatform::getAvailableVulkanInstanceExtensions() {
+std::vector<VkExtensionProperties> VulkanEngine::VulkanPlatform::getAvailableVulkanInstanceExtensions() {
     auto instanceExtensionProperties = std::vector<VkExtensionProperties> {};
     uint32_t numInstanceExtensions = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &numInstanceExtensions, nullptr);
@@ -60,7 +66,7 @@ std::vector<VkExtensionProperties> VulkanPlatform::getAvailableVulkanInstanceExt
 
 
 
-MissingPlatformRequirements VulkanPlatform::detectMissingInstanceRequirements(
+MissingPlatformRequirements VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(
     const VulkanInstanceProperties& instanceInfo,
     const VulkanInstanceRequirements& platformRequirements
 ) {
@@ -99,7 +105,7 @@ MissingPlatformRequirements VulkanPlatform::detectMissingInstanceRequirements(
     return MissingPlatformRequirements(missingExtensionNames, missingLayerNames);
 }
 
-MissingPhysicalDeviceRequirements VulkanPlatform::detectMissingRequiredDeviceExtensions(
+MissingPhysicalDeviceRequirements VulkanEngine::VulkanPlatform::detectMissingRequiredDeviceExtensions(
     const PhysicalDeviceProperties& physicalDeviceProperties,
     const PhysicalDeviceRequirements& physicalDeviceRequirements
 ) {

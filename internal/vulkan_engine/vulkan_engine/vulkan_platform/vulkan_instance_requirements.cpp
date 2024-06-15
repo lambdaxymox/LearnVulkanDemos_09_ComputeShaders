@@ -1,32 +1,14 @@
-#include "VulkanInstanceRequirements.h"
-#include "VulkanPlatform.h"
-#include "OsPlatform.h"
+#include "vulkan_instance_requirements.h"
+#include "operating_system.h"
+#include "constants.h"
 
 #include <vulkan/vulkan.h>
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
 
-template <> struct fmt::formatter<std::vector<std::string>> {
-    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator {
-        return ctx.end();
-    };
-
-    auto format(const std::vector<std::string>& vec, format_context& ctx) const -> format_context::iterator {
-        auto appender = fmt::format_to(ctx.out(), "{}", "[");
-        if (!vec.empty()) {
-            auto lastItem = vec.end() - 1;
-            for (auto item = vec.begin(); item != lastItem; item++) {
-                fmt::format_to(appender, "\"{}\", ", *item);
-            }
-            fmt::format_to(appender, "\"{}\"", *lastItem);
-        }
-        fmt::format_to(appender, "{}", "]");
-
-        return appender;
-    }
-};
-
+using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
+using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
 
 VulkanInstanceRequirements::VulkanInstanceRequirements(const std::vector<std::string>& extensions, const std::vector<std::string>& layers)
     : m_instanceExtensions { extensions }
@@ -47,18 +29,11 @@ bool VulkanInstanceRequirements::isEmpty() const {
 }
 
 
-auto fmt::formatter<VulkanInstanceRequirements>::format(const VulkanInstanceRequirements& requirements, format_context& ctx) const -> format_context::iterator {
-    return fmt::format_to(
-        ctx.out(),
-        "VulkanInstanceRequirements {{ instanceExtensions: {}, instanceLayers: {} }}",
-        requirements.getExtensions(), 
-        requirements.getLayers()
-    );
-}
+
 
 
 VulkanInstanceRequirementsBuilder::VulkanInstanceRequirementsBuilder() {
-    if (Os::detectOperatingSystem() == Os::Platform::Apple) {
+    if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
         m_instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
         m_instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     }
@@ -83,7 +58,7 @@ VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireDeb
 }
 
 VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireValidationLayers() {
-    m_instanceLayers.push_back(VulkanPlatform::VK_LAYER_KHRONOS_validation);
+    m_instanceLayers.push_back(VulkanEngine::VulkanPlatform::VK_LAYER_KHRONOS_validation);
     m_instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     return *this;

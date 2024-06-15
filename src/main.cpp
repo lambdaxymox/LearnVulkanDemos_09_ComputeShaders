@@ -17,19 +17,15 @@
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
-#include "PhysicalDeviceProperties.h"
-#include "PhysicalDeviceRequirements.h"
-#include "VulkanInstanceProperties.h"
-#include "VulkanInstanceRequirements.h"
-#include "VulkanPlatform.h"
-#include "OsPlatform.h"
+#include <vulkan_engine/vulkan_platform.h>
+#include <vulkan_engine/vulkan_platform_impl_fmt.h>
 
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 const std::vector<std::string> validationLayers = std::vector<std::string> { 
-    VulkanPlatform::VK_LAYER_KHRONOS_validation
+    VulkanEngine::VulkanPlatform::VK_LAYER_KHRONOS_validation
 };
 
 const std::vector<const char*> deviceExtensions = std::vector<const char*> {
@@ -44,6 +40,11 @@ const bool enableValidationLayers = true;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
+
+using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
+using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
+using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
+using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 
 VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, 
@@ -249,7 +250,7 @@ private:
 
     VkInstanceCreateFlags defaultInstanceCreateFlags() const {
         auto flags = 0;
-        if (Os::detectOperatingSystem() == Os::Platform::Apple) {
+        if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
             flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
@@ -263,13 +264,13 @@ private:
             .requireDebuggingExtensions()
             .includeFrom(vulkanExtensionsRequiredByGLFW)
             .build();
-        auto instanceInfo = VulkanPlatform::getVulkanInstanceInfo();
+        auto instanceInfo = VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
 
         return instanceRequirements;
     }
 
     bool checkValidationLayerSupport() const {
-        auto instanceInfo = VulkanPlatform::getVulkanInstanceInfo();
+        auto instanceInfo = VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
 
         return instanceInfo.areValidationLayersAvailable();
     }
@@ -299,9 +300,9 @@ private:
     }
 
     void createInstance() {
-        auto instanceInfo = VulkanPlatform::getVulkanInstanceInfo();
+        auto instanceInfo = VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
         auto instanceRequirements = this->getInstanceRequirements();
-        auto missingRequirements = VulkanPlatform::detectMissingInstanceRequirements(
+        auto missingRequirements = VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(
             instanceInfo,
             instanceRequirements
         );
@@ -564,9 +565,9 @@ private:
         
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        auto deviceExtensionProperties = VulkanPlatform::getAvailableVulkanDeviceExtensions(m_physicalDevice);
+        auto deviceExtensionProperties = VulkanEngine::VulkanPlatform::getAvailableVulkanDeviceExtensions(m_physicalDevice);
         auto requiredDeviceExtensions = this->getDeviceRequirements(m_physicalDevice);
-        auto missingRequirements = VulkanPlatform::detectMissingRequiredDeviceExtensions(
+        auto missingRequirements = VulkanEngine::VulkanPlatform::detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
             requiredDeviceExtensions
         );

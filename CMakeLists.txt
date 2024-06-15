@@ -68,7 +68,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project("LearnVulkanDemos_01_HelloTriangle" VERSION 1.0.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(NoInSourceBuilds)
@@ -80,22 +80,19 @@ add_subdirectory(external/glfw-3.4)
 add_subdirectory(external/glm-1.0.1)
 add_subdirectory(external/fmt-10.2.0)
 
+add_subdirectory(internal/vulkan_engine)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_executable(LearnVulkanDemos_01_HelloTriangle)
 target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
     src/main.cpp
-    src/PhysicalDeviceProperties.cpp
-    src/PhysicalDeviceRequirements.cpp
-    src/VulkanInstanceProperties.cpp
-    src/VulkanInstanceRequirements.cpp
-    src/VulkanPlatform.cpp
-    src/OsPlatform.h
 )
-target_link_libraries(LearnVulkanDemos_01_HelloTriangle glfw)
-target_link_libraries(LearnVulkanDemos_01_HelloTriangle glm)
-target_link_libraries(LearnVulkanDemos_01_HelloTriangle fmt)
-target_link_libraries(LearnVulkanDemos_01_HelloTriangle Vulkan::Vulkan)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE glfw)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE glm)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE fmt)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE Vulkan::Vulkan)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE vulkan_engine)
 add_dependencies(LearnVulkanDemos_01_HelloTriangle GLSL_Shaders)
 add_dependencies(LearnVulkanDemos_01_HelloTriangle HLSL_Shaders)
 

@@ -3,7 +3,11 @@
 
 #include <vector>
 #include <string>
-#include <fmt/core.h>
+
+
+namespace VulkanEngine {
+
+namespace VulkanPlatform {
 
 
 class VulkanInstanceRequirements final {
@@ -41,8 +45,9 @@ private:
     std::vector<std::string> m_instanceLayers;
 };
 
-template <> struct fmt::formatter<VulkanInstanceRequirements>: fmt::formatter<string_view> {
-    auto format(const VulkanInstanceRequirements& requirements, format_context& ctx) const -> format_context::iterator;
-};
+
+}
+
+}
 
 #endif /* VULKAN_INSTANCE_REQUIREMENTS_H */
