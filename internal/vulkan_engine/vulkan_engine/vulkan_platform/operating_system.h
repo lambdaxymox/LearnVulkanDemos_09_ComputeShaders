@@ -30,4 +30,4 @@ constexpr Platform detectOperatingSystem() {
 
 }
 
-#endif /* OS_PLATFORM_H */
+#endif // OS_PLATFORM_H

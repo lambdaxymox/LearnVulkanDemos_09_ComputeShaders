@@ -16,4 +16,4 @@ const std::string VK_KHR_portability_subset = std::string { "VK_KHR_portability_
 
 }
 
-#endif /* CONSTANTS_H */
+#endif // CONSTANTS_H

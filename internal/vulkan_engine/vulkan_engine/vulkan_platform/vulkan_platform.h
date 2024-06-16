@@ -39,4 +39,4 @@ MissingPhysicalDeviceRequirements detectMissingRequiredDeviceExtensions(
 
 }
 
-#endif /* VULKAN_PLATFORM_VULKAN_PLATFORM_H */
+#endif // VULKAN_PLATFORM_VULKAN_PLATFORM_H

@@ -11,4 +11,4 @@
 #include "vulkan_platform/vulkan_instance_requirements.h"
 #include "vulkan_platform/vulkan_platform.h"
 
-#endif /* VULKAN_PLATFORM_H */
+#endif // VULKAN_PLATFORM_H

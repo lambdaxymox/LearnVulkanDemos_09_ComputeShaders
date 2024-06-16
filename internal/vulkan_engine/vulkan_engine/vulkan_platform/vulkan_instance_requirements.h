@@ -30,4 +30,4 @@ private:
 
 }
 
-#endif /* VULKAN_INSTANCE_REQUIREMENTS_H */
+#endif // VULKAN_INSTANCE_REQUIREMENTS_H

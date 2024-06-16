@@ -25,4 +25,4 @@ private:
 
 }
 
-#endif /* PHYSICAL_DEVICE_PROPERTIES_H */
+#endif // PHYSICAL_DEVICE_PROPERTIES_H

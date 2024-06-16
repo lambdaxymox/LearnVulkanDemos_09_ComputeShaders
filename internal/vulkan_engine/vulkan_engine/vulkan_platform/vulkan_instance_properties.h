@@ -38,4 +38,4 @@ private:
 
 }
 
-#endif /* VULKAN_INSTANCE_PROPERTIES_H */
+#endif // VULKAN_INSTANCE_PROPERTIES_H
