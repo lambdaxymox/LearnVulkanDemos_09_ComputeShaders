@@ -8,12 +8,7 @@ using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceR
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 
 
-PhysicalDeviceRequirementsBuilder::PhysicalDeviceRequirementsBuilder() {
-    // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
-    if (VulkanPlatform::detectOperatingSystem() == VulkanPlatform::Platform::Apple) {
-        m_deviceExtensions.emplace_back(VulkanPlatform::VK_KHR_portability_subset);
-    }
-}
+PhysicalDeviceRequirementsBuilder::PhysicalDeviceRequirementsBuilder() {}
 
 PhysicalDeviceRequirementsBuilder& PhysicalDeviceRequirementsBuilder::requireExtension(const std::string& extensionName) {
     m_deviceExtensions.emplace_back(extensionName);

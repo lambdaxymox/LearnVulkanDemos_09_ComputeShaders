@@ -340,14 +340,11 @@ private:
 
     VulkanInstanceRequirements getInstanceRequirements() const {
         auto vulkanExtensionsRequiredByGLFW = this->getVulkanInstanceExtensionsRequiredByGLFW();
-        auto instanceRequirements = VulkanInstanceRequirementsBuilder()
+        return VulkanInstanceRequirementsBuilder()
             .requireValidationLayers()
             .requireDebuggingExtensions()
             .includeFrom(vulkanExtensionsRequiredByGLFW)
             .build();
-        auto instanceInfo = VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
-
-        return instanceRequirements;
     }
 
     bool checkValidationLayerSupport() const {
@@ -357,7 +354,13 @@ private:
     }
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
-        return PhysicalDeviceRequirementsBuilder()
+        auto builder = PhysicalDeviceRequirementsBuilder {};
+        // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
+        if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
+            builder.requireExtension(VulkanEngine::VulkanPlatform::VK_KHR_portability_subset);
+        }
+
+        return builder
             .requireExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             .build();
     }
@@ -406,7 +409,7 @@ private:
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello, Triangle!";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
+        appInfo.pEngineName = "Vulkan Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_3;
 
@@ -679,7 +682,8 @@ private:
             createInfo.enabledLayerCount = 0;
         }
 
-        if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
+        auto result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
@@ -1152,7 +1156,6 @@ private:
         presentInfo.pImageIndices = &imageIndex;
 
         result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized) {
             m_framebufferResized = false;
             this->recreateSwapChain();
