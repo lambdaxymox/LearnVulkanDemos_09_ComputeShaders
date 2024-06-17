@@ -20,6 +20,8 @@
 #include <vulkan_engine/vulkan_platform.h>
 #include <vulkan_engine/vulkan_platform_impl_fmt.h>
 
+#include <unordered_set>
+
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -105,6 +107,83 @@ struct SwapChainSupportDetails final {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct VulkanEngineShader final {
+    std::string name;
+    std::vector<char> code;
+
+    constexpr inline bool hasName() const noexcept {
+        return this->name.empty();
+    }
+};
+
+class Engine final {
+public:
+    Engine() 
+        : m_instance { VK_NULL_HANDLE }
+        , m_device { VK_NULL_HANDLE }
+        , m_shaderModules { std::unordered_set<VkShaderModule> {} }
+    {
+    }
+
+    Engine(VkInstance instance, VkDevice device) 
+        : m_instance { instance }
+        , m_device { device }
+        , m_shaderModules { std::unordered_set<VkShaderModule> {} }
+    {
+    }
+
+    std::vector<char> loadShader(std::istream& stream) {
+        size_t shaderSize = static_cast<size_t>(stream.tellg());
+        auto buffer = std::vector<char>(shaderSize);
+
+        stream.seekg(0);
+        stream.read(buffer.data(), shaderSize);
+
+        return buffer;
+    }
+
+    std::vector<char> loadShaderFromFile(const std::string& fileName) {
+        auto stream = this->openShaderFile(fileName);
+        auto shader = this->loadShader(stream);
+        stream.close();
+
+        return shader;
+    }
+
+    VkShaderModule createShaderModule(const std::vector<char>& code) {
+        auto createInfo = VkShaderModuleCreateInfo {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+
+        auto shaderModule = VkShaderModule {};
+        auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module!");
+        }
+
+        this->m_shaderModules.insert(shaderModule);
+
+        return shaderModule;
+    }    
+private:
+    std::ifstream openShaderFile(const std::string& fileName) {
+        auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
+
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open file!");
+        }
+
+        return file;
+    }
+
+    VkInstance m_instance;
+    VkDevice m_device;
+    std::unordered_set<VkShaderModule> m_shaderModules;
+};
+
 class App {
 public:
     void run() {
@@ -114,6 +193,7 @@ public:
         this->cleanup();
     }
 private:
+    Engine m_engine;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkSurfaceKHR m_surface;
@@ -172,6 +252,7 @@ private:
         this->createSurface();
         this->choosePhysicalDevice();
         this->createLogicalDevice();
+        this->createEngine();
         this->createSwapChain();
         this->createImageViews();
         this->createRenderPass();
@@ -275,13 +356,13 @@ private:
         return instanceInfo.areValidationLayersAvailable();
     }
 
-    PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) {
+    PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
         return PhysicalDeviceRequirementsBuilder()
             .requireExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             .build();
     }
 
-    std::vector<std::string> getEnabledLayerNames() {
+    std::vector<std::string> getEnabledLayerNames() const {
         if (enableValidationLayers && !this->checkValidationLayerSupport()) {
             throw std::runtime_error("validation layers requested, but not available!");
         }
@@ -516,19 +597,19 @@ private:
     }
 
     void choosePhysicalDevice() {
-        uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+        uint32_t physicalDeviceCount = 0;
+        vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr);
 
-        if (deviceCount == 0) {
+        if (physicalDeviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
         }
 
-        auto devices = std::vector<VkPhysicalDevice> { deviceCount };
-        vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
+        auto physicalDevices = std::vector<VkPhysicalDevice> { physicalDeviceCount };
+        vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, physicalDevices.data());
 
-        for (const auto& device : devices) {
-            if (this->isDeviceSuitable(device)) {
-                m_physicalDevice = device;
+        for (const auto& physicalDevice : physicalDevices) {
+            if (this->isDeviceSuitable(physicalDevice)) {
+                m_physicalDevice = physicalDevice;
                 break;
             }
         }
@@ -536,6 +617,11 @@ private:
         if (m_physicalDevice == VK_NULL_HANDLE) {
             throw std::runtime_error("failed to find a suitable GPU!");
         }
+    }
+
+    void createEngine() {
+        auto engine = Engine { this->m_instance, this->m_device };
+        this->m_engine = engine;
     }
 
     void createLogicalDevice() {
@@ -683,22 +769,33 @@ private:
         }
     }
 
-    static std::vector<char> readFile(const std::string& filename) {
-        auto file = std::ifstream { filename, std::ios::ate | std::ios::binary };
+    /*
+    static std::ifstream openShaderFile(const std::string& fileName) {
+        auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
 
         if (!file.is_open()) {
             throw std::runtime_error("failed to open file!");
         }
 
-        size_t fileSize = static_cast<size_t>(file.tellg());
-        auto buffer = std::vector<char>(fileSize);
+        return file;
+    }
 
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
+    static std::vector<char> loadShader(std::istream& stream) {
+        size_t shaderSize = static_cast<size_t>(stream.tellg());
+        auto buffer = std::vector<char>(shaderSize);
 
-        file.close();
+        stream.seekg(0);
+        stream.read(buffer.data(), shaderSize);
 
         return buffer;
+    }
+
+    static std::vector<char> loadShaderFromFile(const std::string& fileName) {
+        auto stream = openShaderFile(fileName);
+        auto shader = loadShader(stream);
+        stream.close();
+
+        return shader;
     }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
@@ -706,6 +803,8 @@ private:
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
 
         auto shaderModule = VkShaderModule {};
         auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
@@ -715,6 +814,7 @@ private:
 
         return shaderModule;
     }
+    */
 
     void createRenderPass() {
         auto colorAttachment = VkAttachmentDescription {};
@@ -750,10 +850,10 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderCode = this->readFile("shaders/shader.vert.hlsl.spv");
-        auto fragmentShaderCode = this->readFile("shaders/shader.frag.hlsl.spv");
-        auto vertexShaderModule = this->createShaderModule(vertexShaderCode);
-        auto fragmentShaderModule = this->createShaderModule(fragmentShaderCode);
+        auto vertexShaderCode = this->m_engine.loadShaderFromFile("shaders/shader.vert.hlsl.spv");
+        auto fragmentShaderCode = this->m_engine.loadShaderFromFile("shaders/shader.frag.hlsl.spv");
+        auto vertexShaderModule = this->m_engine.createShaderModule(vertexShaderCode);
+        auto fragmentShaderModule = this->m_engine.createShaderModule(fragmentShaderCode);
 
         auto vertexShaderStageInfo = VkPipelineShaderStageCreateInfo {};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
