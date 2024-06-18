@@ -429,8 +429,8 @@ private:
         m_isInitialized = true;
     }
 
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-        createInfo = {};
+    VkDebugUtilsMessengerCreateInfoEXT createDebugMessengerCreateInfo() {
+        auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = 
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
@@ -441,6 +441,8 @@ private:
             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = debugCallback;
+
+        return createInfo;
     }
 
     void setupDebugMessenger() {
@@ -448,8 +450,7 @@ private:
             return;
         }
 
-        auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
-        this->populateDebugMessengerCreateInfo(createInfo);
+        auto createInfo = this->createDebugMessengerCreateInfo();
 
         auto result = CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger);
         if (result != VK_SUCCESS) {
