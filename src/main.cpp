@@ -250,7 +250,7 @@ private:
         this->createInstance();
         this->setupDebugMessenger();
         this->createSurface();
-        this->choosePhysicalDevice();
+        this->selectPhysicalDevice();
         this->createLogicalDevice();
         this->createEngine();
         this->createSwapChain();
@@ -391,7 +391,7 @@ private:
             instanceRequirements
         );
         if (!missingRequirements.isEmpty()) {
-            std::string errorMessage("Vulkan does not have the required extension on this system: ");
+            auto errorMessage = std::string { "Vulkan does not have the required extension on this system: " };
             for (const auto& extensionName : missingRequirements.getExtensions()) {
                 errorMessage.append(extensionName);
                 errorMessage.append("\n");
@@ -465,14 +465,14 @@ private:
         }
     }
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice) {
         auto indices = QueueFamilyIndices {};
 
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 
         auto queueFamilies = std::vector<VkQueueFamilyProperties> { queueFamilyCount };
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
@@ -481,7 +481,7 @@ private:
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_surface, &presentSupport);
 
             if (presentSupport) {
                 indices.presentFamily = i;
@@ -497,14 +497,14 @@ private:
         return indices;
     }
 
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+    bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
         uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
 
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+        auto availableExtensions = std::vector<VkExtensionProperties> { extensionCount };
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
-        std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+        auto requiredExtensions = std::set<std::string> { deviceExtensions.begin(), deviceExtensions.end() };
 
         for (const auto& extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
@@ -513,31 +513,30 @@ private:
         return requiredExtensions.empty();
     }
 
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice) {
         auto details = SwapChainSupportDetails {};
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_surface, &details.capabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &formatCount, nullptr);
 
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &formatCount, details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, m_surface, &formatCount, details.formats.data());
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_surface, &presentModeCount, nullptr);
 
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &presentModeCount, details.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_surface, &presentModeCount, details.presentModes.data());
         }
 
         return details;
     }
 
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+    VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
@@ -547,7 +546,7 @@ private:
         return availableFormats[0];
     }
 
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    VkPresentModeKHR selectSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
         for (const auto& availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
@@ -558,48 +557,21 @@ private:
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-            return capabilities.currentExtent;
-        } else {
-            int width, height;
-            glfwGetWindowSize(m_window, &width, &height);
+    bool isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice) {
+        QueueFamilyIndices indices = this->findQueueFamilies(physicalDevice);
 
-            auto actualExtent = VkExtent2D {
-                static_cast<uint32_t>(width),
-                static_cast<uint32_t>(height)
-            };
-
-            actualExtent.width = std::clamp(
-                actualExtent.width, 
-                capabilities.minImageExtent.width, 
-                capabilities.maxImageExtent.width
-            );
-            actualExtent.height = std::clamp(
-                actualExtent.height, 
-                capabilities.minImageExtent.height, 
-                capabilities.maxImageExtent.height
-            );
-
-            return actualExtent;
-        }
-    }
-
-    bool isDeviceSuitable(VkPhysicalDevice device) {
-        QueueFamilyIndices indices = this->findQueueFamilies(device);
-
-        bool extensionsSupported = this->checkDeviceExtensionSupport(device);
+        bool extensionsSupported = this->checkDeviceExtensionSupport(physicalDevice);
 
         bool swapChainAdequate = false;
         if (extensionsSupported) {
-            SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(device);
+            SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(physicalDevice);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
         return indices.isComplete() && extensionsSupported && swapChainAdequate;
     }
 
-    void choosePhysicalDevice() {
+    void selectPhysicalDevice() {
         uint32_t physicalDeviceCount = 0;
         vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr);
 
@@ -611,7 +583,7 @@ private:
         vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, physicalDevices.data());
 
         for (const auto& physicalDevice : physicalDevices) {
-            if (this->isDeviceSuitable(physicalDevice)) {
+            if (this->isPhysicalDeviceSuitable(physicalDevice)) {
                 m_physicalDevice = physicalDevice;
                 break;
             }
@@ -691,12 +663,38 @@ private:
         vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
     }
 
+    VkExtent2D selectSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            return capabilities.currentExtent;
+        } else {
+            int width, height;
+            glfwGetWindowSize(m_window, &width, &height);
+
+            auto actualExtent = VkExtent2D {
+                static_cast<uint32_t>(width),
+                static_cast<uint32_t>(height)
+            };
+
+            actualExtent.width = std::clamp(
+                actualExtent.width, 
+                capabilities.minImageExtent.width, 
+                capabilities.maxImageExtent.width
+            );
+            actualExtent.height = std::clamp(
+                actualExtent.height, 
+                capabilities.minImageExtent.height, 
+                capabilities.maxImageExtent.height
+            );
+
+            return actualExtent;
+        }
+    }
+
     void createSwapChain() {
         SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(m_physicalDevice);
-
-        VkSurfaceFormatKHR surfaceFormat = this->chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = this->chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = this->chooseSwapExtent(swapChainSupport.capabilities);
+        VkSurfaceFormatKHR surfaceFormat = this->selectSwapSurfaceFormat(swapChainSupport.formats);
+        VkPresentModeKHR presentMode = this->selectSwapPresentMode(swapChainSupport.presentModes);
+        VkExtent2D extent = this->selectSwapExtent(swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
