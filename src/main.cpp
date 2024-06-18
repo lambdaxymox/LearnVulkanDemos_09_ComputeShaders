@@ -118,13 +118,7 @@ struct VulkanEngineShader final {
 
 class Engine final {
 public:
-    Engine() 
-        : m_instance { VK_NULL_HANDLE }
-        , m_device { VK_NULL_HANDLE }
-        , m_shaderModules { std::unordered_set<VkShaderModule> {} }
-    {
-    }
-
+    Engine() = default;
     Engine(VkInstance instance, VkDevice device) 
         : m_instance { instance }
         , m_device { device }
@@ -167,7 +161,7 @@ public:
         this->m_shaderModules.insert(shaderModule);
 
         return shaderModule;
-    }    
+    }
 private:
     std::ifstream openShaderFile(const std::string& fileName) {
         auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
@@ -187,6 +181,7 @@ private:
 class App {
 public:
     void run() {
+        this->initWindowSystem();
         this->initWindow();
         this->initVulkan();
         this->mainLoop();
@@ -303,9 +298,11 @@ private:
         }
     }
 
-    void initWindow() {
+    void initWindowSystem() {
         glfwInit();
+    }
 
+    void initWindow() {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
         m_window = glfwCreateWindow(WIDTH, HEIGHT, "Hello Triangle", nullptr, nullptr);
@@ -422,11 +419,13 @@ private:
         createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensionsCStrings.size());
         createInfo.ppEnabledExtensionNames = requiredExtensionsCStrings.data();
 
-        auto result = vkCreateInstance(&createInfo, nullptr, &m_instance);
+        VkInstance instance = VK_NULL_HANDLE;
+        auto result = vkCreateInstance(&createInfo, nullptr, &instance);
         if (result != VK_SUCCESS) {
             throw std::runtime_error(fmt::format("Failed to create Vulkan instance."));
         }
 
+        m_instance = instance;
         m_isInitialized = true;
     }
 
@@ -459,13 +458,16 @@ private:
     }
 
     void createSurface() {
-        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface);
+        auto surface = VkSurfaceKHR {};
+        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
+
+        this->m_surface = surface;
     }
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice) {
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
         auto indices = QueueFamilyIndices {};
 
         uint32_t queueFamilyCount = 0;
@@ -481,7 +483,7 @@ private:
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, m_surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
 
             if (presentSupport) {
                 indices.presentFamily = i;
@@ -497,7 +499,7 @@ private:
         return indices;
     }
 
-    bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
+    bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice) const {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
 
@@ -505,7 +507,6 @@ private:
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
         auto requiredExtensions = std::set<std::string> { deviceExtensions.begin(), deviceExtensions.end() };
-
         for (const auto& extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
@@ -513,7 +514,7 @@ private:
         return requiredExtensions.empty();
     }
 
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice) {
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice) const {
         auto details = SwapChainSupportDetails {};
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, m_surface, &details.capabilities);
 
@@ -534,6 +535,57 @@ private:
         }
 
         return details;
+    }
+
+    bool isPhysicalDeviceCompatible(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
+        QueueFamilyIndices indices = this->findQueueFamilies(physicalDevice, surface);
+
+        bool extensionsSupported = this->checkDeviceExtensionSupport(physicalDevice);
+
+        bool swapChainAdequate = false;
+        if (extensionsSupported) {
+            SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(physicalDevice);
+            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+        }
+
+        return indices.isComplete() && extensionsSupported && swapChainAdequate;
+    }
+
+    std::vector<VkPhysicalDevice> findCompatiblePhysicalDevices() const {
+        uint32_t physicalDeviceCount = 0;
+        vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr);
+
+        if (physicalDeviceCount == 0) {
+            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+        }
+
+        auto physicalDevices = std::vector<VkPhysicalDevice> { physicalDeviceCount };
+        vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, physicalDevices.data());
+
+        auto compatiblePhysicalDevices = std::vector<VkPhysicalDevice> {};
+        for (const auto& physicalDevice : physicalDevices) {
+            if (this->isPhysicalDeviceCompatible(physicalDevice, m_surface)) {
+                compatiblePhysicalDevices.emplace_back(physicalDevice);
+            }
+        }
+
+        return compatiblePhysicalDevices;
+    }
+
+    void selectPhysicalDevice() {
+        auto physicalDevices = this->findCompatiblePhysicalDevices();
+        if (physicalDevices.empty()) {
+            throw std::runtime_error("failed to find a suitable GPU!");
+        }
+
+        VkPhysicalDevice selectedPhysicalDevice = physicalDevices[0];
+
+        this->m_physicalDevice = selectedPhysicalDevice;
+    }
+
+    void createEngine() {
+        auto engine = Engine { this->m_instance, this->m_device };
+        this->m_engine = engine;
     }
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -557,50 +609,8 @@ private:
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    bool isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice) {
-        QueueFamilyIndices indices = this->findQueueFamilies(physicalDevice);
-
-        bool extensionsSupported = this->checkDeviceExtensionSupport(physicalDevice);
-
-        bool swapChainAdequate = false;
-        if (extensionsSupported) {
-            SwapChainSupportDetails swapChainSupport = this->querySwapChainSupport(physicalDevice);
-            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-        }
-
-        return indices.isComplete() && extensionsSupported && swapChainAdequate;
-    }
-
-    void selectPhysicalDevice() {
-        uint32_t physicalDeviceCount = 0;
-        vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr);
-
-        if (physicalDeviceCount == 0) {
-            throw std::runtime_error("failed to find GPUs with Vulkan support!");
-        }
-
-        auto physicalDevices = std::vector<VkPhysicalDevice> { physicalDeviceCount };
-        vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, physicalDevices.data());
-
-        for (const auto& physicalDevice : physicalDevices) {
-            if (this->isPhysicalDeviceSuitable(physicalDevice)) {
-                m_physicalDevice = physicalDevice;
-                break;
-            }
-        }
-
-        if (m_physicalDevice == VK_NULL_HANDLE) {
-            throw std::runtime_error("failed to find a suitable GPU!");
-        }
-    }
-
-    void createEngine() {
-        auto engine = Engine { this->m_instance, this->m_device };
-        this->m_engine = engine;
-    }
-
     void createLogicalDevice() {
-        QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice);
+        QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice, m_surface);
 
         auto uniqueQueueFamilies = std::set<uint32_t> {
             indices.graphicsFamily.value(), 
@@ -712,7 +722,7 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice);
+        QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice, m_surface);
         auto queueFamilyIndices = std::array<uint32_t, 2> { 
             indices.graphicsFamily.value(),
             indices.presentFamily.value()
@@ -989,7 +999,7 @@ private:
     }
 
     void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = this->findQueueFamilies(m_physicalDevice);
+        QueueFamilyIndices queueFamilyIndices = this->findQueueFamilies(m_physicalDevice, m_surface);
 
         auto poolInfo = VkCommandPoolCreateInfo {};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
