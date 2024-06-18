@@ -299,7 +299,13 @@ private:
     }
 
     void initWindowSystem() {
-        glfwInit();
+        auto result = glfwInit();
+        if (!result) {
+            glfwTerminate();
+
+            auto errorMessage = std::string { "Failed to initialize GLFW" };
+            throw std::runtime_error { errorMessage };
+        }
     }
 
     void initWindow() {
