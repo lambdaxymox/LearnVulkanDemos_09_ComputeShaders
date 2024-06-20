@@ -48,6 +48,7 @@ using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanIn
 using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 
+/*
 VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, 
     const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
@@ -78,6 +79,7 @@ void DestroyDebugUtilsMessengerEXT(
         func(instance, debugMessenger, pAllocator);
     }
 }
+*/
 
 std::vector<const char*> convertToCStrings(const std::vector<std::string>& strings) {
     auto cStrings = std::vector<const char*> {};
@@ -116,9 +118,9 @@ struct VulkanEngineShader final {
     }
 };
 
-class InstanceFactory final {
+class VulkanInstanceFactory final {
 public:
-    InstanceFactory() = default;
+    explicit VulkanInstanceFactory() = default;
 
     VulkanInstanceRequirements getVulkanInstanceExtensionsRequiredByGLFW() const {
         uint32_t requiredExtensionCount = 0;
@@ -240,7 +242,7 @@ private:
 
 class PhysicalDeviceSelector final {
 public:
-    PhysicalDeviceSelector(VkInstance instance) : m_instance { instance } {}
+    explicit PhysicalDeviceSelector(VkInstance instance) : m_instance { instance } {}
     ~PhysicalDeviceSelector() {
         m_instance = VK_NULL_HANDLE;
     }
@@ -381,100 +383,18 @@ private:
     VkInstance m_instance;
 };
 
-class Engine final {
+class LogicalDeviceFactory final {
 public:
-    explicit Engine() = default;
-
-    VkInstance getInstance() const {
-        return m_instance;
+    explicit LogicalDeviceFactory(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+        : m_physicalDevice { physicalDevice }
+        , m_surface { surface }
+    {
     }
 
-    VkPhysicalDevice getPhysicalDevice() {
-        return m_physicalDevice;
+    ~LogicalDeviceFactory() {
+        m_physicalDevice = VK_NULL_HANDLE;
+        m_surface = VK_NULL_HANDLE;
     }
-
-    VkDevice getLogicalDevice() {
-        return m_device;
-    }
-
-    VkQueue getGraphicsQueue() {
-        return m_graphicsQueue;
-    }
-
-    VkQueue getPresentQueue() {
-        return m_presentQueue;
-    }
-
-    VkSurfaceKHR getSurface() {
-        return m_surface;
-    }
-
-    void createInstance() {
-        auto instanceFactory = InstanceFactory {};
-        auto instance = instanceFactory.createInstance();
-        m_instance = instance;
-    }
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData
-    ) {
-        fmt::println(std::cerr, "validation layer: {}", pCallbackData->pMessage);
-
-        return VK_FALSE;
-    }
-
-    VkDebugUtilsMessengerCreateInfoEXT createDebugMessengerCreateInfo() {
-        auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = 
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = 
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = debugCallback;
-
-        return createInfo;
-    }
-
-    void setupDebugMessenger() {
-        if (!enableValidationLayers) {
-            return;
-        }
-
-        auto createInfo = this->createDebugMessengerCreateInfo();
-
-        auto result = CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug messenger!");
-        }
-    }
-
-
-
-    void selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) {
-        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance };
-        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(surface, requiredExtensions);
-        
-        this->m_physicalDevice = selectedPhysicalDevice;
-    }
-
-    void createSurface(GLFWwindow* window) {
-        auto surface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, window, nullptr, &surface);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface!");
-        }
-
-        this->m_surface = surface;
-    }
-
-
 
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
@@ -544,7 +464,7 @@ public:
         return details;
     }
 
-    void createLogicalDevice() {
+    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice() {
         QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice, m_surface);
 
         auto uniqueQueueFamilies = std::set<uint32_t> {
@@ -612,6 +532,320 @@ public:
         VkQueue presentQueue = VK_NULL_HANDLE;
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
+        return std::make_tuple(device, graphicsQueue, presentQueue);
+    }
+private:
+    VkPhysicalDevice m_physicalDevice;
+    VkSurfaceKHR m_surface;
+};
+
+
+class VulkanDebugMessenger final {
+public:
+    explicit VulkanDebugMessenger()
+        : m_instance { VK_NULL_HANDLE }
+        , m_debugMessenger { VK_NULL_HANDLE }
+    {
+    }
+
+    ~VulkanDebugMessenger() {
+        this->cleanup();
+    }
+
+
+    static VulkanDebugMessenger create(VkInstance instance) {
+        if (instance == VK_NULL_HANDLE) {
+            throw std::invalid_argument { "Got an empty `VkInstance` handle" };
+        }
+
+        uint32_t physicalDeviceCount = 0;
+        auto result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+        if (result != VK_SUCCESS) {
+            throw std::invalid_argument { "Got an invalid `VkInstance` handle" };
+        }
+
+        auto vulkanDebugMessenger = VulkanDebugMessenger {};
+        auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = 
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = 
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+
+        auto debugMessenger = static_cast<VkDebugUtilsMessengerEXT>(nullptr);
+        result = VulkanDebugMessenger::CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error { "failed to set up debug messenger!" };
+        }
+
+        vulkanDebugMessenger.m_instance = instance;
+        vulkanDebugMessenger.m_debugMessenger = debugMessenger;
+
+        return vulkanDebugMessenger;
+    }
+
+    static VkResult CreateDebugUtilsMessengerEXT(
+        VkInstance instance, 
+        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+        const VkAllocationCallbacks* pAllocator, 
+        VkDebugUtilsMessengerEXT* pDebugMessenger
+    ) {
+        auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT")
+        );
+
+        if (func != nullptr) {
+            return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        } else {
+            return VK_ERROR_EXTENSION_NOT_PRESENT;
+        }
+    }
+
+    static void DestroyDebugUtilsMessengerEXT(
+        VkInstance instance, 
+        VkDebugUtilsMessengerEXT debugMessenger, 
+        const VkAllocationCallbacks* pAllocator
+    ) {
+        auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
+        );
+
+        if (func != nullptr) {
+            func(instance, debugMessenger, pAllocator);
+        }
+    }
+
+    static const std::string& messageSeverityToString(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity) {
+        static const std::string MESSAGE_SEVERITY_INFO = std::string { "INFO " };
+        static const std::string MESSAGE_SEVERITY_WARNING = std::string { "WARN " };
+        static const std::string MESSAGE_SEVERITY_ERROR = std::string { "ERROR" };
+
+        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+            return MESSAGE_SEVERITY_ERROR;
+        } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            return MESSAGE_SEVERITY_WARNING;
+        } else {
+            return MESSAGE_SEVERITY_INFO;
+        }
+    }
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+    ) {
+        auto messageSeverityString = VulkanDebugMessenger::messageSeverityToString(messageSeverity);
+        fmt::println(std::cerr, "[{}] {}", messageSeverityString, pCallbackData->pMessage);
+
+        return VK_FALSE;
+    }
+
+    void cleanup() {
+        if (this->m_instance == VK_NULL_HANDLE) {
+            return;
+        }
+
+        if (this->m_debugMessenger != VK_NULL_HANDLE) {
+            VulkanDebugMessenger::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+        }
+
+        this->m_debugMessenger = VK_NULL_HANDLE;
+        this->m_instance = VK_NULL_HANDLE;
+    }
+private:
+    VkInstance m_instance;
+    VkDebugUtilsMessengerEXT m_debugMessenger;
+};
+
+class Engine final {
+public:
+    explicit Engine() = default;
+    ~Engine() {
+        this->m_debugMessenger.cleanup();
+    }
+
+    VkInstance getInstance() const {
+        return m_instance;
+    }
+
+    VkPhysicalDevice getPhysicalDevice() {
+        return m_physicalDevice;
+    }
+
+    VkDevice getLogicalDevice() {
+        return m_device;
+    }
+
+    VkQueue getGraphicsQueue() {
+        return m_graphicsQueue;
+    }
+
+    VkQueue getPresentQueue() {
+        return m_presentQueue;
+    }
+
+    VkSurfaceKHR getSurface() {
+        return m_surface;
+    }
+
+    void createInstance() {
+        auto instanceFactory = VulkanInstanceFactory {};
+        auto instance = instanceFactory.createInstance();
+        m_instance = instance;
+    }
+
+    /*
+    static const std::string& messageSeverityToString(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity) {
+        static const std::string MESSAGE_SEVERITY_INFO = std::string { "INFO" };
+        static const std::string MESSAGE_SEVERITY_WARNING = std::string { "WARN" };
+        static const std::string MESSAGE_SEVERITY_ERROR = std::string { "ERROR" };
+
+        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+            return MESSAGE_SEVERITY_ERROR;
+        } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            return MESSAGE_SEVERITY_WARNING;
+        } else {
+            return MESSAGE_SEVERITY_INFO;
+        }
+    }
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+    ) {
+        fmt::println(std::cerr, "[{}] {}", messageSeverityToString(messageSeverity), pCallbackData->pMessage);
+
+        return VK_FALSE;
+    }
+
+    void setupDebugMessenger() {
+        if (!enableValidationLayers) {
+            return;
+        }
+
+        auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = 
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = 
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+
+        auto debugMessenger = static_cast<VkDebugUtilsMessengerEXT>(nullptr);
+        auto result = CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &debugMessenger);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to set up debug messenger!");
+        }
+
+        this->m_debugMessenger = debugMessenger;
+    }
+    */
+    void setupDebugMessenger() {
+        if (!enableValidationLayers) {
+            return;
+        }
+
+        auto debugMessenger = VulkanDebugMessenger::create(this->m_instance);
+
+        this->m_debugMessenger = debugMessenger;
+    }
+
+    void createSurface(GLFWwindow* window) {
+        auto surface = VkSurfaceKHR {};
+        auto result = glfwCreateWindowSurface(m_instance, window, nullptr, &surface);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create window surface!");
+        }
+
+        this->m_surface = surface;
+    }
+
+    void selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) {
+        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance };
+        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(surface, requiredExtensions);
+    }
+
+    void selectPhysicalDevice() {
+        auto requiredExtensions = std::set<std::string> { deviceExtensions.begin(), deviceExtensions.end() };
+        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance };
+        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(m_surface, requiredExtensions);
+        
+        this->m_physicalDevice = selectedPhysicalDevice;
+    }
+
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
+        auto indices = QueueFamilyIndices {};
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+
+        auto queueFamilies = std::vector<VkQueueFamilyProperties> { queueFamilyCount };
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies) {
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.graphicsFamily = i;
+            }
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+
+            if (presentSupport) {
+                indices.presentFamily = i;
+            }
+
+            if (indices.isComplete()) {
+                break;
+            }
+
+            i++;
+        }
+
+        return indices;
+    }
+
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
+        auto details = SwapChainSupportDetails {};
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
+
+        uint32_t formatCount = 0;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+
+        if (formatCount != 0) {
+            details.formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
+        }
+
+        uint32_t presentModeCount = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
+
+        if (presentModeCount != 0) {
+            details.presentModes.resize(presentModeCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
+        }
+
+        return details;
+    }
+
+    void createLogicalDevice() {
+        auto factory = LogicalDeviceFactory { m_physicalDevice, m_surface };
+        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice();
+
         this->m_device = device;
         this->m_graphicsQueue = graphicsQueue;
         this->m_presentQueue = presentQueue;
@@ -671,7 +905,7 @@ public:
 private:
     VkInstance m_instance;
     VkSurfaceKHR m_surface;
-    VkDebugUtilsMessengerEXT m_debugMessenger;
+    VulkanDebugMessenger m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
@@ -693,7 +927,9 @@ private:
     Engine m_engine;
 
     VkInstance m_instance;
+    /*
     VkDebugUtilsMessengerEXT m_debugMessenger;
+    */
     VkSurfaceKHR m_surface;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
@@ -775,10 +1011,6 @@ private:
 
             vkDestroyDevice(m_device, nullptr);
 
-            if (enableValidationLayers) {
-                DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
-            }
-
             vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
             vkDestroyInstance(m_instance, nullptr);
 
@@ -829,9 +1061,7 @@ private:
     }
 
     void selectPhysicalDevice() {
-        auto requiredExtensions = std::set<std::string> { deviceExtensions.begin(), deviceExtensions.end() };
-        
-        this->m_engine.selectPhysicalDeviceForSurface(m_surface, requiredExtensions);
+        this->m_engine.selectPhysicalDevice();
         auto selectedPhysicalDevice = this->m_engine.getPhysicalDevice();
         this->m_physicalDevice = selectedPhysicalDevice;
     }
@@ -1395,7 +1625,6 @@ private:
         vkDeviceWaitIdle(m_device);
 
         this->cleanupSwapChain();
-
         this->createSwapChain();
         this->createImageViews();
         this->createFramebuffers();
