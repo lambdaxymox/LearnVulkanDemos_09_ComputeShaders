@@ -210,7 +210,11 @@ private:
 
 class PhysicalDeviceSelector final {
 public:
-    explicit PhysicalDeviceSelector(VkInstance instance) : m_instance { instance } {}
+    explicit PhysicalDeviceSelector(VkInstance instance) 
+        : m_instance { instance } 
+    {
+    }
+
     ~PhysicalDeviceSelector() {
         m_instance = VK_NULL_HANDLE;
     }
@@ -507,7 +511,6 @@ private:
     VkSurfaceKHR m_surface;
 };
 
-
 class VulkanDebugMessenger final {
 public:
     explicit VulkanDebugMessenger()
@@ -520,8 +523,7 @@ public:
         this->cleanup();
     }
 
-
-    static VulkanDebugMessenger create(VkInstance instance) {
+    static VulkanDebugMessenger* create(VkInstance instance) {
         if (instance == VK_NULL_HANDLE) {
             throw std::invalid_argument { "Got an empty `VkInstance` handle" };
         }
@@ -532,7 +534,6 @@ public:
             throw std::invalid_argument { "Got an invalid `VkInstance` handle" };
         }
 
-        auto vulkanDebugMessenger = VulkanDebugMessenger {};
         auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = 
@@ -552,8 +553,9 @@ public:
             throw std::runtime_error { "failed to set up debug messenger!" };
         }
 
-        vulkanDebugMessenger.m_instance = instance;
-        vulkanDebugMessenger.m_debugMessenger = debugMessenger;
+        auto vulkanDebugMessenger = new VulkanDebugMessenger {};
+        vulkanDebugMessenger->m_instance = instance;
+        vulkanDebugMessenger->m_debugMessenger = debugMessenger;
 
         return vulkanDebugMessenger;
     }
@@ -636,7 +638,7 @@ class Engine final {
 public:
     explicit Engine() = default;
     ~Engine() {
-        this->m_debugMessenger.cleanup();
+        delete this->m_debugMessenger;
     }
 
     VkInstance getInstance() const {
@@ -666,7 +668,8 @@ public:
     void createInstance() {
         auto instanceFactory = VulkanInstanceFactory {};
         auto instance = instanceFactory.createInstance();
-        m_instance = instance;
+        
+        this->m_instance = instance;
     }
 
     void setupDebugMessenger() {
@@ -675,7 +678,6 @@ public:
         }
 
         auto debugMessenger = VulkanDebugMessenger::create(this->m_instance);
-
         this->m_debugMessenger = debugMessenger;
     }
 
@@ -766,11 +768,6 @@ public:
         this->m_presentQueue = presentQueue;
     }
 
-
-
-
-
-
     std::vector<char> loadShader(std::istream& stream) {
         size_t shaderSize = static_cast<size_t>(stream.tellg());
         auto buffer = std::vector<char>(shaderSize);
@@ -819,8 +816,8 @@ public:
     }
 private:
     VkInstance m_instance;
+    VulkanDebugMessenger* m_debugMessenger;
     VkSurfaceKHR m_surface;
-    VulkanDebugMessenger m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
@@ -839,7 +836,7 @@ public:
         this->cleanup();
     }
 private:
-    Engine m_engine;
+    Engine* m_engine;
 
     VkInstance m_instance;
     VkSurfaceKHR m_surface;
@@ -881,6 +878,7 @@ private:
         this->setupDebugMessenger();
         this->selectPhysicalDevice();
         this->createLogicalDevice();
+
         this->createSwapChain();
         this->createImageViews();
         this->createRenderPass();
@@ -957,37 +955,38 @@ private:
     }
 
     void createInstance() {
-        this->m_engine.createInstance();
-        m_instance = this->m_engine.getInstance();
+        this->m_engine->createInstance();
+        m_instance = this->m_engine->getInstance();
     }
 
     void setupDebugMessenger() {
-        this->m_engine.setupDebugMessenger();
+        this->m_engine->setupDebugMessenger();
     }
 
     void createSurface() {
-        this->m_engine.createSurface(m_window);
-        auto surface = this->m_engine.getSurface();
+        this->m_engine->createSurface(m_window);
+        auto surface = this->m_engine->getSurface();
         
         this->m_surface = surface;
     }
 
     void selectPhysicalDevice() {
-        this->m_engine.selectPhysicalDevice();
-        auto selectedPhysicalDevice = this->m_engine.getPhysicalDevice();
+        this->m_engine->selectPhysicalDevice();
+        auto selectedPhysicalDevice = this->m_engine->getPhysicalDevice();
         this->m_physicalDevice = selectedPhysicalDevice;
     }
 
     void createLogicalDevice() {
-        this->m_engine.createLogicalDevice();
+        this->m_engine->createLogicalDevice();
 
-        this->m_device = this->m_engine.getLogicalDevice();
-        this->m_graphicsQueue = this->m_engine.getGraphicsQueue();
-        this->m_presentQueue = this->m_engine.getPresentQueue();
+        this->m_device = this->m_engine->getLogicalDevice();
+        this->m_graphicsQueue = this->m_engine->getGraphicsQueue();
+        this->m_presentQueue = this->m_engine->getPresentQueue();
     }
 
     void createEngine() {
-        auto engine = Engine {};
+        auto engine = new Engine {};
+
         this->m_engine = engine;
     }
 
@@ -1040,7 +1039,7 @@ private:
     }
 
     void createSwapChain() {
-        SwapChainSupportDetails swapChainSupport = this->m_engine.querySwapChainSupport(m_physicalDevice, m_surface);
+        SwapChainSupportDetails swapChainSupport = this->m_engine->querySwapChainSupport(m_physicalDevice, m_surface);
         VkSurfaceFormatKHR surfaceFormat = this->selectSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = this->selectSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = this->selectSwapExtent(swapChainSupport.capabilities);
@@ -1061,7 +1060,7 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = this->m_engine.findQueueFamilies(m_physicalDevice, m_surface);
+        QueueFamilyIndices indices = this->m_engine->findQueueFamilies(m_physicalDevice, m_surface);
         auto queueFamilyIndices = std::array<uint32_t, 2> { 
             indices.graphicsFamily.value(),
             indices.presentFamily.value()
@@ -1154,10 +1153,10 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderCode = this->m_engine.loadShaderFromFile("shaders/shader.vert.hlsl.spv");
-        auto fragmentShaderCode = this->m_engine.loadShaderFromFile("shaders/shader.frag.hlsl.spv");
-        auto vertexShaderModule = this->m_engine.createShaderModule(vertexShaderCode);
-        auto fragmentShaderModule = this->m_engine.createShaderModule(fragmentShaderCode);
+        auto vertexShaderCode = this->m_engine->loadShaderFromFile("shaders/shader.vert.hlsl.spv");
+        auto fragmentShaderCode = this->m_engine->loadShaderFromFile("shaders/shader.frag.hlsl.spv");
+        auto vertexShaderModule = this->m_engine->createShaderModule(vertexShaderCode);
+        auto fragmentShaderModule = this->m_engine->createShaderModule(fragmentShaderCode);
 
         auto vertexShaderStageInfo = VkPipelineShaderStageCreateInfo {};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1338,7 +1337,7 @@ private:
     }
 
     void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = this->m_engine.findQueueFamilies(m_physicalDevice, m_surface);
+        QueueFamilyIndices queueFamilyIndices = this->m_engine->findQueueFamilies(m_physicalDevice, m_surface);
 
         auto poolInfo = VkCommandPoolCreateInfo {};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
