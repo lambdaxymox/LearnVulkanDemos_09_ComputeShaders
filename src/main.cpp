@@ -48,38 +48,6 @@ using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanIn
 using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 
-/*
-VkResult CreateDebugUtilsMessengerEXT(
-    VkInstance instance, 
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
-    const VkAllocationCallbacks* pAllocator, 
-    VkDebugUtilsMessengerEXT* pDebugMessenger
-) {
-    auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT")
-    );
-
-    if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-
-void DestroyDebugUtilsMessengerEXT(
-    VkInstance instance, 
-    VkDebugUtilsMessengerEXT debugMessenger, 
-    const VkAllocationCallbacks* pAllocator
-) {
-    auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
-    );
-
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
-*/
 
 std::vector<const char*> convertToCStrings(const std::vector<std::string>& strings) {
     auto cStrings = std::vector<const char*> {};
@@ -701,59 +669,6 @@ public:
         m_instance = instance;
     }
 
-    /*
-    static const std::string& messageSeverityToString(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity) {
-        static const std::string MESSAGE_SEVERITY_INFO = std::string { "INFO" };
-        static const std::string MESSAGE_SEVERITY_WARNING = std::string { "WARN" };
-        static const std::string MESSAGE_SEVERITY_ERROR = std::string { "ERROR" };
-
-        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            return MESSAGE_SEVERITY_ERROR;
-        } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            return MESSAGE_SEVERITY_WARNING;
-        } else {
-            return MESSAGE_SEVERITY_INFO;
-        }
-    }
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData
-    ) {
-        fmt::println(std::cerr, "[{}] {}", messageSeverityToString(messageSeverity), pCallbackData->pMessage);
-
-        return VK_FALSE;
-    }
-
-    void setupDebugMessenger() {
-        if (!enableValidationLayers) {
-            return;
-        }
-
-        auto createInfo = VkDebugUtilsMessengerCreateInfoEXT {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = 
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = 
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = debugCallback;
-
-        auto debugMessenger = static_cast<VkDebugUtilsMessengerEXT>(nullptr);
-        auto result = CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &debugMessenger);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug messenger!");
-        }
-
-        this->m_debugMessenger = debugMessenger;
-    }
-    */
     void setupDebugMessenger() {
         if (!enableValidationLayers) {
             return;
@@ -927,9 +842,6 @@ private:
     Engine m_engine;
 
     VkInstance m_instance;
-    /*
-    VkDebugUtilsMessengerEXT m_debugMessenger;
-    */
     VkSurfaceKHR m_surface;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
