@@ -868,21 +868,8 @@ private:
 
     bool m_enableValidationLayers { false };
 
-    void mainLoop() {
-        while (!glfwWindowShouldClose(m_window)) {
-            glfwPollEvents();
-            this->draw();
-        }
-
-        vkDeviceWaitIdle(this->m_engine->getLogicalDevice());
-    }
-
-    bool isInitialized() const {
-        return this->m_engine->isInitialized();
-    }
-
     void cleanup() {
-        if (this->isInitialized()) {
+        if (this->m_engine->isInitialized()) {
             this->cleanupSwapChain();
 
             vkDestroyPipeline(this->m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
@@ -933,28 +920,6 @@ private:
         m_window = window;
     }
 
-    /*
-    void createInstance() {
-        this->m_engine->createInstance();
-    }
-
-    void setupDebugMessenger() {
-        this->m_engine->setupDebugMessenger();
-    }
-
-    void createSurface() {
-        this->m_engine->createSurface(m_window);
-    }
-
-    void selectPhysicalDevice() {
-        this->m_engine->selectPhysicalDevice();
-    }
-
-    void createLogicalDevice() {
-        this->m_engine->createLogicalDevice();
-    }
-    */
-
     void createEngine() {
         auto engine = new Engine {};
         engine->createInstance();
@@ -968,13 +933,6 @@ private:
 
     void initVulkan() {
         this->createEngine();
-        /*
-        this->createInstance();
-        this->createSurface();
-        this->setupDebugMessenger();
-        this->selectPhysicalDevice();
-        this->createLogicalDevice();
-        */
 
         this->createSwapChain();
         this->createImageViews();
@@ -984,6 +942,15 @@ private:
         this->createCommandPool();
         this->createCommandBuffers();
         this->createSyncObjects();
+    }
+
+    void mainLoop() {
+        while (!glfwWindowShouldClose(m_window)) {
+            glfwPollEvents();
+            this->draw();
+        }
+
+        vkDeviceWaitIdle(this->m_engine->getLogicalDevice());
     }
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
