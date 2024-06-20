@@ -665,6 +665,10 @@ public:
         return m_surface;
     }
 
+    bool isInitialized() {
+        return this->m_instance != VK_NULL_HANDLE;
+    }
+
     void createInstance() {
         auto instanceFactory = VulkanInstanceFactory {};
         auto instance = instanceFactory.createInstance();
@@ -837,13 +841,6 @@ public:
     }
 private:
     Engine* m_engine;
-
-    VkInstance m_instance;
-    VkSurfaceKHR m_surface;
-    VkPhysicalDevice m_physicalDevice;
-    VkDevice m_device;
-    VkQueue m_graphicsQueue;
-    VkQueue m_presentQueue;
     
     VkRenderPass m_renderPass;
     VkPipelineLayout m_pipelineLayout;
@@ -895,34 +892,34 @@ private:
             this->draw();
         }
 
-        vkDeviceWaitIdle(m_device);
+        vkDeviceWaitIdle(this->m_engine->getLogicalDevice());
     }
 
     bool isInitialized() const {
-        return this->m_instance != VK_NULL_HANDLE;
+        return this->m_engine->isInitialized();
     }
 
     void cleanup() {
         if (this->isInitialized()) {
             this->cleanupSwapChain();
 
-            vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-            vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+            vkDestroyPipeline(this->m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
+            vkDestroyPipelineLayout(this->m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
             
-            vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+            vkDestroyRenderPass(this->m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-                vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-                vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+                vkDestroySemaphore(this->m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
+                vkDestroySemaphore(this->m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
+                vkDestroyFence(this->m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
             }
             
-            vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+            vkDestroyCommandPool(this->m_engine->getLogicalDevice(), m_commandPool, nullptr);
 
-            vkDestroyDevice(m_device, nullptr);
+            vkDestroyDevice(this->m_engine->getLogicalDevice(), nullptr);
 
-            vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-            vkDestroyInstance(m_instance, nullptr);
+            vkDestroySurfaceKHR(this->m_engine->getInstance(), this->m_engine->getSurface(), nullptr);
+            vkDestroyInstance(this->m_engine->getInstance(), nullptr);
 
             glfwDestroyWindow(m_window);
             glfwTerminate();
@@ -956,7 +953,6 @@ private:
 
     void createInstance() {
         this->m_engine->createInstance();
-        m_instance = this->m_engine->getInstance();
     }
 
     void setupDebugMessenger() {
@@ -965,23 +961,14 @@ private:
 
     void createSurface() {
         this->m_engine->createSurface(m_window);
-        auto surface = this->m_engine->getSurface();
-        
-        this->m_surface = surface;
     }
 
     void selectPhysicalDevice() {
         this->m_engine->selectPhysicalDevice();
-        auto selectedPhysicalDevice = this->m_engine->getPhysicalDevice();
-        this->m_physicalDevice = selectedPhysicalDevice;
     }
 
     void createLogicalDevice() {
         this->m_engine->createLogicalDevice();
-
-        this->m_device = this->m_engine->getLogicalDevice();
-        this->m_graphicsQueue = this->m_engine->getGraphicsQueue();
-        this->m_presentQueue = this->m_engine->getPresentQueue();
     }
 
     void createEngine() {
@@ -1039,7 +1026,7 @@ private:
     }
 
     void createSwapChain() {
-        SwapChainSupportDetails swapChainSupport = this->m_engine->querySwapChainSupport(m_physicalDevice, m_surface);
+        SwapChainSupportDetails swapChainSupport = this->m_engine->querySwapChainSupport(this->m_engine->getPhysicalDevice(), this->m_engine->getSurface());
         VkSurfaceFormatKHR surfaceFormat = this->selectSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = this->selectSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = this->selectSwapExtent(swapChainSupport.capabilities);
@@ -1051,7 +1038,7 @@ private:
 
         auto createInfo = VkSwapchainCreateInfoKHR {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = m_surface;
+        createInfo.surface = this->m_engine->getSurface();
 
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
@@ -1060,7 +1047,7 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = this->m_engine->findQueueFamilies(m_physicalDevice, m_surface);
+        QueueFamilyIndices indices = this->m_engine->findQueueFamilies(this->m_engine->getPhysicalDevice(), this->m_engine->getSurface());
         auto queueFamilyIndices = std::array<uint32_t, 2> { 
             indices.graphicsFamily.value(),
             indices.presentFamily.value()
@@ -1081,13 +1068,13 @@ private:
 
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(this->m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(this->m_engine->getLogicalDevice(), m_swapChain, &imageCount, nullptr);
         m_swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_swapChainImages.data());
+        vkGetSwapchainImagesKHR(this->m_engine->getLogicalDevice(), m_swapChain, &imageCount, m_swapChainImages.data());
 
         m_swapChainImageFormat = surfaceFormat.format;
         m_swapChainExtent = extent;
@@ -1112,7 +1099,7 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            auto result = vkCreateImageView(m_device, &createInfo, nullptr, &m_swapChainImageViews[i]);
+            auto result = vkCreateImageView(this->m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create image views!");
             }
@@ -1146,7 +1133,7 @@ private:
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
 
-        auto result = vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass);
+        auto result = vkCreateRenderPass(this->m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
@@ -1267,7 +1254,7 @@ private:
         pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(this->m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -1290,7 +1277,7 @@ private:
         pipelineInfo.basePipelineIndex = -1;              // Optional
 
         auto result = vkCreateGraphicsPipelines(
-            m_device, 
+            this->m_engine->getLogicalDevice(), 
             VK_NULL_HANDLE, 
             1, 
             &pipelineInfo, 
@@ -1302,8 +1289,8 @@ private:
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-        vkDestroyShaderModule(m_device, fragmentShaderModule, nullptr);
-        vkDestroyShaderModule(m_device, vertexShaderModule, nullptr);
+        vkDestroyShaderModule(this->m_engine->getLogicalDevice(), fragmentShaderModule, nullptr);
+        vkDestroyShaderModule(this->m_engine->getLogicalDevice(), vertexShaderModule, nullptr);
     }
 
     void createFramebuffers() {
@@ -1324,7 +1311,7 @@ private:
             framebufferInfo.layers = 1;
 
             auto result = vkCreateFramebuffer(
-                m_device,
+                this->m_engine->getLogicalDevice(),
                 &framebufferInfo,
                 nullptr,
                 &m_swapChainFramebuffers[i]
@@ -1337,14 +1324,14 @@ private:
     }
 
     void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = this->m_engine->findQueueFamilies(m_physicalDevice, m_surface);
+        QueueFamilyIndices queueFamilyIndices = this->m_engine->findQueueFamilies(this->m_engine->getPhysicalDevice(), this->m_engine->getSurface());
 
         auto poolInfo = VkCommandPoolCreateInfo {};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool);
+        auto result = vkCreateCommandPool(this->m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_commandPool);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
@@ -1359,7 +1346,7 @@ private:
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-        auto result = vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data());
+        auto result = vkAllocateCommandBuffers(this->m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data());
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
@@ -1427,17 +1414,17 @@ private:
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            auto result = vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
+            auto result = vkCreateSemaphore(this->m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create in-flight semaphore synchronization object");
             }
 
-            result = vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
+            result = vkCreateSemaphore(this->m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create render finished synchronization object");
             }
 
-            result = vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]);
+            result = vkCreateFence(this->m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create in-flight fence synchronization object");
             }
@@ -1445,11 +1432,11 @@ private:
     }
 
     void draw() {
-        vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(this->m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
         auto result = vkAcquireNextImageKHR(
-            m_device, 
+            this->m_engine->getLogicalDevice(), 
             m_swapChain, 
             UINT64_MAX, 
             m_imageAvailableSemaphores[m_currentFrame], 
@@ -1464,7 +1451,7 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        vkResetFences(m_device, 1, &m_inFlightFences[m_currentFrame]);
+        vkResetFences(this->m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
         vkResetCommandBuffer(m_commandBuffers[m_currentFrame], /* VkCommandBufferResetFlagBits */ 0);
         this->recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
@@ -1485,7 +1472,7 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
-        if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(this->m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -1501,7 +1488,7 @@ private:
 
         presentInfo.pImageIndices = &imageIndex;
 
-        result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+        result = vkQueuePresentKHR(this->m_engine->getPresentQueue(), &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized) {
             m_framebufferResized = false;
             this->recreateSwapChain();
@@ -1514,14 +1501,14 @@ private:
 
     void cleanupSwapChain() {
         for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++) {
-            vkDestroyFramebuffer(m_device, m_swapChainFramebuffers[i], nullptr);
+            vkDestroyFramebuffer(this->m_engine->getLogicalDevice(), m_swapChainFramebuffers[i], nullptr);
         }
 
         for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
-            vkDestroyImageView(m_device, m_swapChainImageViews[i], nullptr);
+            vkDestroyImageView(this->m_engine->getLogicalDevice(), m_swapChainImageViews[i], nullptr);
         }
 
-        vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
+        vkDestroySwapchainKHR(this->m_engine->getLogicalDevice(), m_swapChain, nullptr);
     }
 
     void recreateSwapChain() {
@@ -1533,7 +1520,7 @@ private:
             glfwWaitEvents();
         }
 
-        vkDeviceWaitIdle(m_device);
+        vkDeviceWaitIdle(this->m_engine->getLogicalDevice());
 
         this->cleanupSwapChain();
         this->createSwapChain();
