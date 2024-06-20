@@ -665,7 +665,7 @@ public:
         return m_surface;
     }
 
-    bool isInitialized() {
+    bool isInitialized() const {
         return this->m_instance != VK_NULL_HANDLE;
     }
 
@@ -868,24 +868,6 @@ private:
 
     bool m_enableValidationLayers { false };
 
-    void initVulkan() {
-        this->createEngine();
-        this->createInstance();
-        this->createSurface();
-        this->setupDebugMessenger();
-        this->selectPhysicalDevice();
-        this->createLogicalDevice();
-
-        this->createSwapChain();
-        this->createImageViews();
-        this->createRenderPass();
-        this->createGraphicsPipeline();
-        this->createFramebuffers();
-        this->createCommandPool();
-        this->createCommandBuffers();
-        this->createSyncObjects();
-    }
-
     void mainLoop() {
         while (!glfwWindowShouldClose(m_window)) {
             glfwPollEvents();
@@ -951,6 +933,7 @@ private:
         m_window = window;
     }
 
+    /*
     void createInstance() {
         this->m_engine->createInstance();
     }
@@ -970,11 +953,37 @@ private:
     void createLogicalDevice() {
         this->m_engine->createLogicalDevice();
     }
+    */
 
     void createEngine() {
         auto engine = new Engine {};
+        engine->createInstance();
+        engine->createSurface(this->m_window);
+        engine->setupDebugMessenger();
+        engine->selectPhysicalDevice();
+        engine->createLogicalDevice();
 
         this->m_engine = engine;
+    }
+
+    void initVulkan() {
+        this->createEngine();
+        /*
+        this->createInstance();
+        this->createSurface();
+        this->setupDebugMessenger();
+        this->selectPhysicalDevice();
+        this->createLogicalDevice();
+        */
+
+        this->createSwapChain();
+        this->createImageViews();
+        this->createRenderPass();
+        this->createGraphicsPipeline();
+        this->createFramebuffers();
+        this->createCommandPool();
+        this->createCommandBuffers();
+        this->createSyncObjects();
     }
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
