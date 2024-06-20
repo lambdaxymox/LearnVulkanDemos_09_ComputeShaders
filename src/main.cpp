@@ -724,7 +724,6 @@ private:
 
     uint32_t m_currentFrame = 0;
 
-    bool m_isInitialized { false };
     bool m_enableValidationLayers { false };
 
     void initVulkan() {
@@ -753,8 +752,12 @@ private:
         vkDeviceWaitIdle(m_device);
     }
 
+    bool isInitialized() const {
+        return this->m_instance != VK_NULL_HANDLE;
+    }
+
     void cleanup() {
-        if (m_isInitialized) {
+        if (this->isInitialized()) {
             this->cleanupSwapChain();
 
             vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
@@ -812,7 +815,6 @@ private:
     void createInstance() {
         this->m_engine.createInstance();
         m_instance = this->m_engine.getInstance();
-        m_isInitialized = true;
     }
 
     void setupDebugMessenger() {
