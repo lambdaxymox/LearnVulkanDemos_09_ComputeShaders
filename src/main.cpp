@@ -638,7 +638,13 @@ class Engine final {
 public:
     explicit Engine() = default;
     ~Engine() {
+        vkDestroyDevice(this->m_device, nullptr);
+        
         delete this->m_debugMessenger;
+        
+        // We do not need to destroy `m_physicalDevice`.
+        vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
+        vkDestroyInstance(this->m_instance, nullptr);
     }
 
     VkInstance getInstance() const {
@@ -885,10 +891,7 @@ private:
             
             vkDestroyCommandPool(this->m_engine->getLogicalDevice(), m_commandPool, nullptr);
 
-            vkDestroyDevice(this->m_engine->getLogicalDevice(), nullptr);
-
-            vkDestroySurfaceKHR(this->m_engine->getInstance(), this->m_engine->getSurface(), nullptr);
-            vkDestroyInstance(this->m_engine->getInstance(), nullptr);
+            delete m_engine;
 
             glfwDestroyWindow(m_window);
             glfwTerminate();
