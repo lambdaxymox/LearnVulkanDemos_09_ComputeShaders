@@ -216,7 +216,7 @@ public:
     }
 
     ~PhysicalDeviceSelector() {
-        m_instance = VK_NULL_HANDLE;
+        this->m_instance = VK_NULL_HANDLE;
     }
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
@@ -367,7 +367,6 @@ public:
         m_physicalDevice = VK_NULL_HANDLE;
         m_surface = VK_NULL_HANDLE;
     }
-
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
         auto builder = PhysicalDeviceRequirementsBuilder {};
@@ -647,6 +646,17 @@ public:
         vkDestroyInstance(this->m_instance, nullptr);
     }
 
+    static Engine* create(GLFWwindow* window) {
+        auto newEngine = new Engine {};
+        newEngine->createInstance();
+        newEngine->createSurface(window);
+        newEngine->setupDebugMessenger();
+        newEngine->selectPhysicalDevice();
+        newEngine->createLogicalDevice();
+
+        return newEngine;
+    }
+
     VkInstance getInstance() const {
         return m_instance;
     }
@@ -924,12 +934,7 @@ private:
     }
 
     void createEngine() {
-        auto engine = new Engine {};
-        engine->createInstance();
-        engine->createSurface(this->m_window);
-        engine->setupDebugMessenger();
-        engine->selectPhysicalDevice();
-        engine->createLogicalDevice();
+        auto engine = Engine::create(this->m_window);
 
         this->m_engine = engine;
     }
