@@ -46,7 +46,9 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
 using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
+using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
 using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
+using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatformRequirements;
 using Platform = VulkanEngine::VulkanPlatform::Platform;
@@ -84,8 +86,19 @@ public:
         return VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(instanceInfo, platformRequirements);
     }
 
+    MissingPhysicalDeviceRequirements detectMissingRequiredDeviceExtensions(
+        const PhysicalDeviceProperties& physicalDeviceProperties,
+        const PhysicalDeviceRequirements& physicalDeviceRequirements
+    ) {
+        return VulkanEngine::VulkanPlatform::detectMissingRequiredDeviceExtensions(physicalDeviceProperties, physicalDeviceRequirements);
+    }
+
     Platform detectOperatingSystem() {
         return VulkanEngine::VulkanPlatform::detectOperatingSystem();
+    }
+
+    PhysicalDeviceProperties getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) {
+        return VulkanEngine::VulkanPlatform::getAvailableVulkanDeviceExtensions(physicalDevice);
     }
 private:
 };
@@ -244,19 +257,21 @@ private:
 
 class PhysicalDeviceSelector final {
 public:
-    explicit PhysicalDeviceSelector(VkInstance instance) 
-        : m_instance { instance } 
+    explicit PhysicalDeviceSelector(VkInstance instance, PlatformInfoProvider* infoProvider)
+        : m_instance { instance }
+        , m_infoProvider { infoProvider }
     {
     }
 
     ~PhysicalDeviceSelector() {
         this->m_instance = VK_NULL_HANDLE;
+        this->m_infoProvider = nullptr;
     }
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
         auto builder = PhysicalDeviceRequirementsBuilder {};
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
-        if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
+        if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
             builder.requireExtension(VulkanEngine::VulkanPlatform::VK_KHR_portability_subset);
         }
 
@@ -387,25 +402,28 @@ public:
     }
 private:
     VkInstance m_instance;
+    PlatformInfoProvider* m_infoProvider;
 };
 
 class LogicalDeviceFactory final {
 public:
-    explicit LogicalDeviceFactory(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+    explicit LogicalDeviceFactory(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, PlatformInfoProvider* infoProvider)
         : m_physicalDevice { physicalDevice }
         , m_surface { surface }
+        , m_infoProvider { infoProvider }
     {
     }
 
     ~LogicalDeviceFactory() {
         m_physicalDevice = VK_NULL_HANDLE;
         m_surface = VK_NULL_HANDLE;
+        m_infoProvider = nullptr;
     }
 
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
         auto builder = PhysicalDeviceRequirementsBuilder {};
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
-        if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
+        if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
             builder.requireExtension(VulkanEngine::VulkanPlatform::VK_KHR_portability_subset);
         }
 
@@ -496,9 +514,9 @@ public:
         
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        auto deviceExtensionProperties = VulkanEngine::VulkanPlatform::getAvailableVulkanDeviceExtensions(m_physicalDevice);
+        auto deviceExtensionProperties = this->m_infoProvider->getAvailableVulkanDeviceExtensions(m_physicalDevice);
         auto requiredDeviceExtensions = this->getDeviceRequirements(m_physicalDevice);
-        auto missingRequirements = VulkanEngine::VulkanPlatform::detectMissingRequiredDeviceExtensions(
+        auto missingRequirements = this->m_infoProvider->detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
             requiredDeviceExtensions
         );
@@ -542,6 +560,7 @@ public:
 private:
     VkPhysicalDevice m_physicalDevice;
     VkSurfaceKHR m_surface;
+    PlatformInfoProvider* m_infoProvider;
 };
 
 class VulkanDebugMessenger final {
@@ -752,16 +771,17 @@ public:
         this->m_surface = surface;
     }
 
-    void selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) {
-        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance };
+    VkPhysicalDevice selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) {
+        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
         auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(surface, requiredExtensions);
+
+        return selectedPhysicalDevice;
     }
 
     void selectPhysicalDevice() {
         auto requiredExtensions = std::set<std::string> { deviceExtensions.begin(), deviceExtensions.end() };
-        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance };
-        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(m_surface, requiredExtensions);
-        
+        auto selectedPhysicalDevice = this->selectPhysicalDeviceForSurface(m_surface, requiredExtensions);
+
         this->m_physicalDevice = selectedPhysicalDevice;
     }
 
@@ -821,7 +841,7 @@ public:
     }
 
     void createLogicalDevice() {
-        auto factory = LogicalDeviceFactory { m_physicalDevice, m_surface };
+        auto factory = LogicalDeviceFactory { m_physicalDevice, m_surface, m_infoProvider };
         auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice();
 
         this->m_device = device;
