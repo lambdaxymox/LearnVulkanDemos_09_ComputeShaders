@@ -43,10 +43,52 @@ const bool enableValidationLayers = true;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 
+using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
 using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
 using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
+using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatformRequirements;
+using Platform = VulkanEngine::VulkanPlatform::Platform;
+
+
+class PlatformInfoProvider {
+public:
+    explicit PlatformInfoProvider() = default;
+    ~PlatformInfoProvider() = default;
+
+    VulkanInstanceProperties getVulkanInstanceInfo() {
+        return VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
+    }
+
+    VulkanInstanceRequirements getWindowSystemInstanceRequirements() const {
+        uint32_t requiredExtensionCount = 0;
+        const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
+        auto requiredExtensions = std::vector<std::string> {};
+        for (int i = 0; i < requiredExtensionCount; i++) {
+            requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
+        }
+
+        auto builder = VulkanInstanceRequirementsBuilder {};
+        for (const auto& extensionName : requiredExtensions) {
+            builder.requireExtension(extensionName);
+        }
+
+        return builder.build();
+    }
+
+    MissingPlatformRequirements detectMissingInstanceRequirements(
+        const VulkanInstanceProperties& instanceInfo,
+        const VulkanInstanceRequirements& platformRequirements
+    ) {
+        return VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(instanceInfo, platformRequirements);
+    }
+
+    Platform detectOperatingSystem() {
+        return VulkanEngine::VulkanPlatform::detectOperatingSystem();
+    }
+private:
+};
 
 
 std::vector<const char*> convertToCStrings(const std::vector<std::string>& strings) {
@@ -88,27 +130,18 @@ struct VulkanEngineShader final {
 
 class VulkanInstanceFactory final {
 public:
-    explicit VulkanInstanceFactory() = default;
+    explicit VulkanInstanceFactory(PlatformInfoProvider* infoProvider)
+        : m_infoProvider { infoProvider }
+    {
+    }
 
-    VulkanInstanceRequirements getVulkanInstanceExtensionsRequiredByGLFW() const {
-        uint32_t requiredExtensionCount = 0;
-        const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
-        auto requiredExtensions = std::vector<std::string> {};
-        for (int i = 0; i < requiredExtensionCount; i++) {
-            requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
-        }
-
-        auto builder = VulkanInstanceRequirementsBuilder {};
-        for (const auto& extensionName : requiredExtensions) {
-            builder.requireExtension(extensionName);
-        }
-
-        return builder.build();
+    ~VulkanInstanceFactory() {
+        this->m_infoProvider = nullptr;
     }
 
     VkInstanceCreateFlags defaultInstanceCreateFlags() const {
         auto flags = 0;
-        if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
+        if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
             flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
@@ -116,7 +149,7 @@ public:
     }
 
     VulkanInstanceRequirements getInstanceRequirements() const {
-        auto vulkanExtensionsRequiredByGLFW = this->getVulkanInstanceExtensionsRequiredByGLFW();
+        auto vulkanExtensionsRequiredByGLFW = this->m_infoProvider->getWindowSystemInstanceRequirements();
         return VulkanInstanceRequirementsBuilder()
             .requireValidationLayers()
             .requireDebuggingExtensions()
@@ -125,7 +158,7 @@ public:
     }
 
     bool checkValidationLayerSupport() const {
-        auto instanceInfo = VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
+        auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
 
         return instanceInfo.areValidationLayersAvailable();
     }
@@ -157,9 +190,9 @@ public:
     }
 
     VkInstance createInstance() {
-        auto instanceInfo = VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
+        auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
         auto instanceRequirements = this->getInstanceRequirements();
-        auto missingRequirements = VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(
+        auto missingRequirements = this->m_infoProvider->detectMissingInstanceRequirements(
             instanceInfo,
             instanceRequirements
         );
@@ -206,6 +239,7 @@ public:
         return instance;
     }
 private:
+    PlatformInfoProvider* m_infoProvider;
 };
 
 class PhysicalDeviceSelector final {
@@ -648,6 +682,7 @@ public:
 
     static Engine* create(GLFWwindow* window) {
         auto newEngine = new Engine {};
+        newEngine->createInfoProvider();
         newEngine->createInstance();
         newEngine->createSurface(window);
         newEngine->setupDebugMessenger();
@@ -685,8 +720,14 @@ public:
         return this->m_instance != VK_NULL_HANDLE;
     }
 
+    void createInfoProvider() {
+        auto infoProvider = new PlatformInfoProvider {};
+
+        this->m_infoProvider = infoProvider;
+    }
+
     void createInstance() {
-        auto instanceFactory = VulkanInstanceFactory {};
+        auto instanceFactory = VulkanInstanceFactory { this->m_infoProvider };
         auto instance = instanceFactory.createInstance();
         
         this->m_instance = instance;
@@ -835,6 +876,7 @@ public:
         return file;
     }
 private:
+    PlatformInfoProvider* m_infoProvider;
     VkInstance m_instance;
     VulkanDebugMessenger* m_debugMessenger;
     VkSurfaceKHR m_surface;
