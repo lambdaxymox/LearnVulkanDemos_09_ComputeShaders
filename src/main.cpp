@@ -132,15 +132,6 @@ struct SwapChainSupportDetails final {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct VulkanEngineShader final {
-    std::string name;
-    std::vector<char> code;
-
-    constexpr inline bool hasName() const noexcept {
-        return this->name.empty();
-    }
-};
-
 class VulkanInstanceFactory final {
 public:
     explicit VulkanInstanceFactory(PlatformInfoProvider* infoProvider)
@@ -644,14 +635,14 @@ public:
     }
 
     static const std::string& messageSeverityToString(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity) {
-        static const std::string MESSAGE_SEVERITY_INFO = std::string { "INFO " };
-        static const std::string MESSAGE_SEVERITY_WARNING = std::string { "WARN " };
+        static const std::string MESSAGE_SEVERITY_INFO  = std::string { "INFO " };
+        static const std::string MESSAGE_SEVERITY_WARN  = std::string { "WARN " };
         static const std::string MESSAGE_SEVERITY_ERROR = std::string { "ERROR" };
 
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
             return MESSAGE_SEVERITY_ERROR;
         } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            return MESSAGE_SEVERITY_WARNING;
+            return MESSAGE_SEVERITY_WARN;
         } else {
             return MESSAGE_SEVERITY_INFO;
         }
@@ -704,7 +695,7 @@ public:
         newEngine->createInfoProvider();
         newEngine->createInstance();
         newEngine->createSurface(window);
-        newEngine->setupDebugMessenger();
+        newEngine->createDebugMessenger();
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
 
@@ -752,7 +743,7 @@ public:
         this->m_instance = instance;
     }
 
-    void setupDebugMessenger() {
+    void createDebugMessenger() {
         if (!enableValidationLayers) {
             return;
         }
