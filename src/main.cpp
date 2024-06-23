@@ -59,7 +59,7 @@ public:
     explicit PlatformInfoProvider() = default;
     ~PlatformInfoProvider() = default;
 
-    VulkanInstanceProperties getVulkanInstanceInfo() {
+    VulkanInstanceProperties getVulkanInstanceInfo() const {
         return VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
     }
 
@@ -82,22 +82,22 @@ public:
     MissingPlatformRequirements detectMissingInstanceRequirements(
         const VulkanInstanceProperties& instanceInfo,
         const VulkanInstanceRequirements& platformRequirements
-    ) {
+    ) const {
         return VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(instanceInfo, platformRequirements);
     }
 
     MissingPhysicalDeviceRequirements detectMissingRequiredDeviceExtensions(
         const PhysicalDeviceProperties& physicalDeviceProperties,
         const PhysicalDeviceRequirements& physicalDeviceRequirements
-    ) {
+    ) const {
         return VulkanEngine::VulkanPlatform::detectMissingRequiredDeviceExtensions(physicalDeviceProperties, physicalDeviceRequirements);
     }
 
-    Platform detectOperatingSystem() {
+    Platform detectOperatingSystem() const {
         return VulkanEngine::VulkanPlatform::detectOperatingSystem();
     }
 
-    PhysicalDeviceProperties getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) {
+    PhysicalDeviceProperties getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) const {
         return VulkanEngine::VulkanPlatform::getAvailableVulkanDeviceExtensions(physicalDevice);
     }
 private:
@@ -132,20 +132,29 @@ struct SwapChainSupportDetails final {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-class VulkanInstanceFactory final {
+class VulkanInstanceSpec final {
 public:
-    explicit VulkanInstanceFactory(PlatformInfoProvider* infoProvider)
-        : m_infoProvider { infoProvider }
+    explicit VulkanInstanceSpec() = default;
+private:
+    VulkanInstanceRequirements m_instanceRequirements;
+    VkInstanceCreateFlags m_flags;
+    std::vector<std::string> m_enabledLayerNames;
+    std::string m_applicationName;
+    std::string m_engineName;
+};
+
+class InstanceRequirementsProvider final {
+public:
+    explicit InstanceRequirementsProvider() = default;
+    explicit InstanceRequirementsProvider(bool enableValidationLayers)
+        : m_enableValidationLayers { false }
     {
+        m_infoProvider = PlatformInfoProvider {};
     }
 
-    ~VulkanInstanceFactory() {
-        this->m_infoProvider = nullptr;
-    }
-
-    VkInstanceCreateFlags defaultInstanceCreateFlags() const {
+    VkInstanceCreateFlags minInstanceCreateFlags() const {
         auto flags = 0;
-        if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
+        if (m_infoProvider.detectOperatingSystem() == Platform::Apple) {
             flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
@@ -153,7 +162,7 @@ public:
     }
 
     VulkanInstanceRequirements getInstanceRequirements() const {
-        auto vulkanExtensionsRequiredByGLFW = this->m_infoProvider->getWindowSystemInstanceRequirements();
+        auto vulkanExtensionsRequiredByGLFW = m_infoProvider.getWindowSystemInstanceRequirements();
         return VulkanInstanceRequirementsBuilder()
             .requireValidationLayers()
             .requireDebuggingExtensions()
@@ -161,21 +170,11 @@ public:
             .build();
     }
 
-    bool checkValidationLayerSupport() const {
-        auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
-
-        return instanceInfo.areValidationLayersAvailable();
-    }
-
     std::vector<std::string> getEnabledLayerNames() const {
-        if (enableValidationLayers && !this->checkValidationLayerSupport()) {
-            throw std::runtime_error("validation layers requested, but not available!");
-        }
-
         auto enabledLayerCount = 0;
         auto enabledLayerNames = std::vector<std::string> {};
 
-        if (enableValidationLayers) {
+        if (m_enableValidationLayers) {
             enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             enabledLayerNames = validationLayers;
         } else {
@@ -183,6 +182,23 @@ public:
         }
 
         return enabledLayerNames;
+    }
+private:
+    PlatformInfoProvider m_infoProvider;
+    bool m_enableValidationLayers;
+};
+
+class VulkanInstanceFactory final {
+public:
+    explicit VulkanInstanceFactory(PlatformInfoProvider* infoProvider, bool enableValidationLayers)
+        : m_infoProvider { infoProvider }
+        , m_enableValidationLayers { enableValidationLayers }
+    {
+        m_requirementsProvider = InstanceRequirementsProvider { enableValidationLayers };
+    }
+
+    ~VulkanInstanceFactory() {
+        this->m_infoProvider = nullptr;
     }
 
     std::string getApplicationName() const {
@@ -193,9 +209,19 @@ public:
         return std::string { "Vulkan Engine" };
     }
 
-    VkInstance createInstance() {
+    bool areValidationLayerSupported() const {
         auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
-        auto instanceRequirements = this->getInstanceRequirements();
+
+        return instanceInfo.areValidationLayersAvailable();
+    }
+
+    VkInstance createInstance() {
+        if (m_enableValidationLayers && !this->areValidationLayerSupported()) {
+            throw std::runtime_error("validation layers requested, but not available!");
+        }
+
+        auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
+        auto instanceRequirements = this->m_requirementsProvider.getInstanceRequirements();
         auto missingRequirements = this->m_infoProvider->detectMissingInstanceRequirements(
             instanceInfo,
             instanceRequirements
@@ -210,8 +236,8 @@ public:
             throw std::runtime_error(errorMessage);
         }
 
-        auto enabledLayerNames = this->getEnabledLayerNames();
-        auto instanceCreateFlags = this->defaultInstanceCreateFlags();
+        auto enabledLayerNames = this->m_requirementsProvider.getEnabledLayerNames();
+        auto instanceCreateFlags = this->m_requirementsProvider.minInstanceCreateFlags();
         auto enabledLayerNamesCStrings = convertToCStrings(enabledLayerNames);
         auto requiredExtensionsCStrings = convertToCStrings(instanceRequirements.getExtensions());
         auto applicationName = this->getApplicationName();
@@ -244,6 +270,8 @@ public:
     }
 private:
     PlatformInfoProvider* m_infoProvider;
+    InstanceRequirementsProvider m_requirementsProvider;
+    bool m_enableValidationLayers;
 };
 
 class PhysicalDeviceSelector final {
@@ -737,7 +765,7 @@ public:
     }
 
     void createInstance() {
-        auto instanceFactory = VulkanInstanceFactory { this->m_infoProvider };
+        auto instanceFactory = VulkanInstanceFactory { this->m_infoProvider, enableValidationLayers };
         auto instance = instanceFactory.createInstance();
         
         this->m_instance = instance;
