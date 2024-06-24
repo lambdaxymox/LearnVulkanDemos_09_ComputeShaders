@@ -236,16 +236,6 @@ public:
         this->m_infoProvider = nullptr;
     }
 
-    /*
-    const std::string& getApplicationName() const {
-        return m_applicationName;
-    }
-
-    const std::string& getEngineName() const {
-        return m_engineName;
-    }
-    */
-
     VulkanInstanceSpecBuilder& withApplicationName(std::string&& engineName) {
         m_engineName = engineName;
 
@@ -259,28 +249,6 @@ public:
     }
 
     VulkanInstanceSpec build() {
-        /*
-        if (m_enableValidationLayers && !this->areValidationLayersSupported()) {
-            throw std::runtime_error("validation layers requested, but not available!");
-        }
-        */
-        /*
-        auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
-        auto instanceRequirements = this->m_requirementsProvider.getInstanceRequirements();
-        auto missingRequirements = this->m_infoProvider->detectMissingInstanceRequirements(
-            instanceInfo,
-            instanceRequirements
-        );
-        if (!missingRequirements.isEmpty()) {
-            auto errorMessage = std::string { "Vulkan does not have the required extension on this system: " };
-            for (const auto& extensionName : missingRequirements.getExtensions()) {
-                errorMessage.append(extensionName);
-                errorMessage.append("\n");
-            }
-
-            throw std::runtime_error(errorMessage);
-        }
-        */
         auto instanceRequirements = m_requirementsProvider.getInstanceRequirements();
         auto enabledLayerNames = m_requirementsProvider.getEnabledLayerNames();
         auto instanceSpec = VulkanInstanceSpec {};
