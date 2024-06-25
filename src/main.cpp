@@ -141,8 +141,8 @@ private:
 
 class InstanceSpecProvider final {
 public:
-    InstanceSpecProvider() = default;
-    InstanceSpecProvider(bool enableValidationLayers, bool enableDebuggingExtensions)
+    explicit InstanceSpecProvider() = default;
+    explicit InstanceSpecProvider(bool enableValidationLayers, bool enableDebuggingExtensions)
         : m_enableValidationLayers { enableValidationLayers }
         , m_enableDebuggingExtensions { enableDebuggingExtensions }
     {
