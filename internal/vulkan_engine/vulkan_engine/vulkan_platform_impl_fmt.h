@@ -24,8 +24,4 @@ template <> struct fmt::formatter<VulkanEngine::VulkanPlatform::VulkanInstancePr
     auto format(const VulkanEngine::VulkanPlatform::VulkanInstanceProperties& platformInfo, format_context& ctx) const -> format_context::iterator;
 };
 
-template <> struct fmt::formatter<VulkanEngine::VulkanPlatform::VulkanInstanceRequirements>: fmt::formatter<string_view> {
-    auto format(const VulkanEngine::VulkanPlatform::VulkanInstanceRequirements& requirements, format_context& ctx) const -> format_context::iterator;
-};
-
 #endif // VULKAN_PLATFORM_IMPL_FMT_H

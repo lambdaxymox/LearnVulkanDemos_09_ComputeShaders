@@ -47,13 +47,10 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
-using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
-using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
 using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
 using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
-using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatformRequirements;
 using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
 using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
 

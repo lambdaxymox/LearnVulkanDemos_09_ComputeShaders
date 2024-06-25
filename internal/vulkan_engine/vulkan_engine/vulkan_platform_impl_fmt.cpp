@@ -4,7 +4,6 @@
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
 using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
-using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
 
 
 template <> struct fmt::formatter<std::vector<std::string>> {
@@ -139,14 +138,5 @@ auto fmt::formatter<VulkanInstanceProperties>::format(const VulkanInstanceProper
         "VulkanInstanceProperties {{ availableLayers: {}, availableExtensions: {} }}",
         platformInfo.getAvailableLayers(), 
         platformInfo.getAvailableExtensions()
-    );
-}
-
-auto fmt::formatter<VulkanInstanceRequirements>::format(const VulkanInstanceRequirements& requirements, format_context& ctx) const -> format_context::iterator {
-    return fmt::format_to(
-        ctx.out(),
-        "VulkanInstanceRequirements {{ instanceExtensions: {}, instanceLayers: {} }}",
-        requirements.getExtensions(), 
-        requirements.getLayers()
     );
 }

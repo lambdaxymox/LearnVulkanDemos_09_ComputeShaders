@@ -6,8 +6,6 @@
 #include "physical_device_properties.h"
 #include "physical_device_requirements_builder.h"
 #include "physical_device_requirements.h"
-#include "vulkan_instance_requirements_builder.h"
-#include "vulkan_instance_requirements.h"
 
 
 namespace VulkanEngine {
@@ -15,7 +13,6 @@ namespace VulkanEngine {
 namespace VulkanPlatform {
 
 
-using MissingPlatformRequirements = VulkanInstanceRequirements;
 using MissingPhysicalDeviceRequirements = PhysicalDeviceRequirements;
 
 
@@ -34,7 +31,7 @@ public:
 
     VulkanInstanceProperties getVulkanInstanceInfo() const;
 
-    VulkanInstanceRequirements getWindowSystemInstanceRequirements() const;
+    std::vector<std::string> getWindowSystemInstanceExtensions() const;
 
     MissingPhysicalDeviceRequirements detectMissingRequiredDeviceExtensions(
         const PhysicalDeviceProperties& physicalDeviceProperties,

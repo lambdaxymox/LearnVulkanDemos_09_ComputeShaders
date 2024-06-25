@@ -6,10 +6,7 @@
 #endif // GLFW_INCLUDE_VULKAN
 
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
-using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
-using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
-using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatformRequirements;
 using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
 
 
@@ -21,7 +18,7 @@ VulkanInstanceProperties VulkanEngine::VulkanPlatform::PlatformInfoProvider::get
     return instanceInfo;
 }
 
-VulkanInstanceRequirements VulkanEngine::VulkanPlatform::PlatformInfoProvider::getWindowSystemInstanceRequirements() const {
+std::vector<std::string> VulkanEngine::VulkanPlatform::PlatformInfoProvider::getWindowSystemInstanceExtensions() const {
     uint32_t requiredExtensionCount = 0;
     const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
     auto requiredExtensions = std::vector<std::string> {};
@@ -29,12 +26,7 @@ VulkanInstanceRequirements VulkanEngine::VulkanPlatform::PlatformInfoProvider::g
         requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
     }
 
-    auto builder = VulkanInstanceRequirementsBuilder {};
-    for (const auto& extensionName : requiredExtensions) {
-        builder.requireExtension(extensionName);
-    }
-
-    return builder.build();
+    return requiredExtensions;
 }
 
 PhysicalDeviceProperties VulkanEngine::VulkanPlatform::PlatformInfoProvider::getAvailableVulkanDeviceExtensions(
