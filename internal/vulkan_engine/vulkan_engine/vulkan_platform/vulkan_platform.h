@@ -55,11 +55,16 @@ public:
 
     std::vector<VkExtensionProperties> getAvailableVulkanInstanceExtensions() const;
 
-    std::vector<VkLayerProperties> getAvailableVulkanInstanceLayers()const ;
+    std::vector<VkLayerProperties> getAvailableVulkanInstanceLayers() const;
 
-    MissingPlatformRequirements detectMissingInstanceRequirements(
+    std::vector<std::string> detectMissingInstanceExtensions(
         const VulkanInstanceProperties& instanceInfo,
-        const VulkanInstanceRequirements& platformRequirements
+        const std::vector<std::string>& instanceExtensions
+    ) const;
+
+    std::vector<std::string> detectMissingInstanceLayers(
+        const VulkanInstanceProperties& instanceInfo,
+        const std::vector<std::string>& instanceExtensions
     ) const;
 
     PhysicalDeviceProperties getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) const;

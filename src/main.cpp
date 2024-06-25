@@ -37,8 +37,10 @@ const std::vector<const char*> deviceExtensions = std::vector<const char*> {
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
+const bool enableDebuggingExtensions = false;
 #else
 const bool enableValidationLayers = true;
+const bool enableDebuggingExtensions = true;
 #endif
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -55,62 +57,173 @@ using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatfor
 using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
 using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
 
-/*
-class PlatformInfoProvider {
-public:
-    explicit PlatformInfoProvider() = default;
-    ~PlatformInfoProvider() = default;
 
-    VulkanInstanceProperties getVulkanInstanceInfo() const {
-        return VulkanEngine::VulkanPlatform::getVulkanInstanceInfo();
-    }
+std::vector<const char*> convertToCStrings(const std::vector<std::string>& strings) {
+    auto cStrings = std::vector<const char*> {};
+    cStrings.reserve(strings.size());
+    std::transform(
+        strings.begin(), 
+        strings.end(), 
+        std::back_inserter(cStrings),
+        [](const std::string& string) { return string.c_str(); }
+    );
+    
+    return cStrings;
+}
 
-    VulkanInstanceRequirements getWindowSystemInstanceRequirements() const {
-        uint32_t requiredExtensionCount = 0;
-        const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
-        auto requiredExtensions = std::vector<std::string> {};
-        for (int i = 0; i < requiredExtensionCount; i++) {
-            requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
-        }
+struct QueueFamilyIndices final {
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
 
-        auto builder = VulkanInstanceRequirementsBuilder {};
-        for (const auto& extensionName : requiredExtensions) {
-            builder.requireExtension(extensionName);
-        }
-
-        return builder.build();
-    }
-
-    MissingPlatformRequirements detectMissingInstanceRequirements(
-        const VulkanInstanceProperties& instanceInfo,
-        const VulkanInstanceRequirements& platformRequirements
-    ) const {
-        return VulkanEngine::VulkanPlatform::detectMissingInstanceRequirements(instanceInfo, platformRequirements);
-    }
-
-    MissingPhysicalDeviceRequirements detectMissingRequiredDeviceExtensions(
-        const PhysicalDeviceProperties& physicalDeviceProperties,
-        const PhysicalDeviceRequirements& physicalDeviceRequirements
-    ) const {
-        return VulkanEngine::VulkanPlatform::detectMissingRequiredDeviceExtensions(physicalDeviceProperties, physicalDeviceRequirements);
-    }
-
-    Platform detectOperatingSystem() const {
-        return VulkanEngine::VulkanPlatform::detectOperatingSystem();
-    }
-
-    PhysicalDeviceProperties getAvailableVulkanDeviceExtensions(VkPhysicalDevice physicalDevice) const {
-        return VulkanEngine::VulkanPlatform::getAvailableVulkanDeviceExtensions(physicalDevice);
-    }
-
-    bool areValidationLayersSupported() const {
-        auto instanceInfo = this->getVulkanInstanceInfo();
-
-        return instanceInfo.areValidationLayersAvailable();
+    bool isComplete() {
+        return graphicsFamily.has_value() && presentFamily.has_value();
     }
 };
-*/
 
+struct SwapChainSupportDetails final {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
+/*
+class VulkanInstanceSpec final {
+public:
+    explicit VulkanInstanceSpec() = default;
+    ~VulkanInstanceSpec() = default;
+
+
+    const VulkanInstanceRequirements& instanceRequirements() const {
+        return m_instanceRequirements;
+    }
+
+    VkInstanceCreateFlags instanceCreateFlags() const {
+        return m_instanceCreateFlags;
+    }
+
+    const std::vector<std::string>& enabledLayerNames() const {
+        return m_enabledLayerNames;
+    }
+
+    const std::string& applicationName() const {
+        return m_applicationName;
+    }
+
+    const std::string& engineName() const {
+        return m_engineName;
+    }
+
+    bool areValidationLayersEnabled() const {
+        return m_enableValidationLayers;
+    }
+private:
+    VulkanInstanceRequirements m_instanceRequirements;
+    VkInstanceCreateFlags m_instanceCreateFlags;
+    std::vector<std::string> m_enabledLayerNames;
+    std::string m_applicationName;
+    std::string m_engineName;
+    bool m_enableValidationLayers;
+
+    friend class VulkanInstanceSpecBuilder;
+};
+*/
+/*
+class VulkanInstanceSpec final {
+public:
+    explicit VulkanInstanceSpec() = default;
+    ~VulkanInstanceSpec() = default;
+
+
+    const VulkanInstanceRequirements& instanceRequirements() const {
+        return m_instanceRequirements;
+    }
+
+    VkInstanceCreateFlags instanceCreateFlags() const {
+        return m_instanceCreateFlags;
+    }
+
+    const std::vector<std::string>& enabledLayerNames() const {
+        return m_enabledLayerNames;
+    }
+
+    const std::string& applicationName() const {
+        return m_applicationName;
+    }
+
+    const std::string& engineName() const {
+        return m_engineName;
+    }
+
+    bool areValidationLayersEnabled() const {
+        return m_enableValidationLayers;
+    }
+private:
+    std::vector<std::string> m_instanceExtensions;
+    std::vector<std::string> m_instanceLayers;
+    VkInstanceCreateFlags m_instanceCreateFlags;
+    std::vector<std::string> m_enabledLayerNames;
+    std::string m_applicationName;
+    std::string m_engineName;
+    bool m_enableValidationLayers;
+};
+*/
+class VulkanInstanceSpec final {
+public:
+    explicit VulkanInstanceSpec() = default;
+    explicit VulkanInstanceSpec(
+        std::vector<std::string> instanceExtensions,
+        std::vector<std::string> instanceLayers,
+        VkInstanceCreateFlags instanceCreateFlags,
+        std::string applicationName,
+        std::string engineName
+    ) 
+        : m_instanceExtensions { instanceExtensions }
+        , m_instanceLayers { instanceLayers }
+        , m_instanceCreateFlags { instanceCreateFlags }
+        , m_applicationName { applicationName }
+        , m_engineName { engineName }
+    {
+    }
+    ~VulkanInstanceSpec() = default;
+
+    const std::vector<std::string>& instanceExtensions() const {
+        return m_instanceExtensions;
+    }
+
+    const std::vector<std::string>& instanceLayers() const {
+        return m_instanceLayers;
+    }
+
+    VkInstanceCreateFlags instanceCreateFlags() const {
+        return m_instanceCreateFlags;
+    }
+
+    const std::string& applicationName() const {
+        return m_applicationName;
+    }
+
+    const std::string& engineName() const {
+        return m_engineName;
+    }
+
+    bool areValidationLayersEnabled() const {
+        auto found = std::find(
+            m_instanceLayers.begin(), 
+            m_instanceLayers.end(), 
+            VulkanEngine::Constants::VK_LAYER_KHRONOS_validation
+        );
+        
+        return found != m_instanceLayers.end();
+    }
+private:
+    std::vector<std::string> m_instanceExtensions;
+    std::vector<std::string> m_instanceLayers;
+    VkInstanceCreateFlags m_instanceCreateFlags;
+    std::string m_applicationName;
+    std::string m_engineName;
+};
+
+/*
 class InstanceRequirementsProvider final {
 public:
     explicit InstanceRequirementsProvider() = default;
@@ -156,76 +269,101 @@ private:
     PlatformInfoProvider m_infoProvider;
     bool m_enableValidationLayers;
 };
-
-
-std::vector<const char*> convertToCStrings(const std::vector<std::string>& strings) {
-    auto cStrings = std::vector<const char*> {};
-    cStrings.reserve(strings.size());
-    std::transform(
-        strings.begin(), 
-        strings.end(), 
-        std::back_inserter(cStrings),
-        [](const std::string& str) { return str.c_str(); }
-    );
-    
-    return cStrings;
-}
-
-struct QueueFamilyIndices final {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails final {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-class VulkanInstanceSpec final {
+*/
+class InstanceSpecProvider final {
 public:
-    explicit VulkanInstanceSpec() = default;
-    ~VulkanInstanceSpec() = default;
-
-
-    const VulkanInstanceRequirements& instanceRequirements() const {
-        return m_instanceRequirements;
+    InstanceSpecProvider() = default;
+    InstanceSpecProvider(bool enableValidationLayers, bool enableDebuggingExtensions)
+        : m_enableValidationLayers { enableValidationLayers }
+        , m_enableDebuggingExtensions { enableDebuggingExtensions }
+    {
     }
 
-    VkInstanceCreateFlags instanceCreateFlags() const {
-        return m_instanceCreateFlags;
+    ~InstanceSpecProvider() {
+        m_enableValidationLayers = false;
+        m_enableDebuggingExtensions = false;
     }
 
-    const std::vector<std::string>& enabledLayerNames() const {
-        return m_enabledLayerNames;
-    }
+    VulkanInstanceSpec createInstanceSpec() const {
+        auto instanceExtensions = this->getInstanceExtensions();
+        auto instanceLayers = this->getInstanceLayers();
+        auto instanceCreateFlags = this->minInstanceCreateFlags();
+        auto applicationName = std::string { "" };
+        auto engineName = std::string { "" };
 
-    const std::string& applicationName() const {
-        return m_applicationName;
-    }
-
-    const std::string& engineName() const {
-        return m_engineName;
-    }
-
-    bool areValidationLayersEnabled() const {
-        return m_enableValidationLayers;
+        return VulkanInstanceSpec {
+            instanceExtensions,
+            instanceLayers,
+            instanceCreateFlags,
+            applicationName,
+            engineName
+        };
     }
 private:
-    VulkanInstanceRequirements m_instanceRequirements;
-    VkInstanceCreateFlags m_instanceCreateFlags;
-    std::vector<std::string> m_enabledLayerNames;
-    std::string m_applicationName;
-    std::string m_engineName;
     bool m_enableValidationLayers;
+    bool m_enableDebuggingExtensions;
 
-    friend class VulkanInstanceSpecBuilder;
+    enum class Platform {
+        Apple,
+        Linux,
+        Windows,
+        Unknown
+    };
+
+    Platform getOperatingSystem() const {
+        #if defined(__APPLE__) || defined(__MACH__)
+        return Platform::Apple;
+        #elif defined(__LINUX__)
+        return Platform::Linux;
+        #elif defined(_WIN32)
+        return Platform::Windows;
+        #else
+        return Platform::Unknown;
+        #endif
+    }
+
+    VkInstanceCreateFlags minInstanceCreateFlags() const {
+        auto instanceCreateFlags = 0;
+        if (this->getOperatingSystem() == Platform::Apple) {
+            instanceCreateFlags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+        }
+
+        return instanceCreateFlags;
+    }
+
+    std::vector<std::string> getWindowSystemInstanceRequirements() const {
+        uint32_t requiredExtensionCount = 0;
+        const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
+        auto requiredExtensions = std::vector<std::string> {};
+        for (int i = 0; i < requiredExtensionCount; i++) {
+            requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
+        }
+
+        return requiredExtensions;
+    }
+
+    std::vector<std::string> getInstanceExtensions() const {
+        auto instanceExtensions = this->getWindowSystemInstanceRequirements();
+        instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        if (m_enableDebuggingExtensions) {
+            instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
+        return instanceExtensions;
+    }
+
+    std::vector<std::string> getInstanceLayers() const {
+        auto instanceLayers = std::vector<std::string> {};
+        if (m_enableValidationLayers) {
+            instanceLayers.push_back(VulkanEngine::Constants::VK_LAYER_KHRONOS_validation);
+        }
+
+        return instanceLayers;
+    }
 };
 
+/*
 class VulkanInstanceSpecBuilder final {
 public:
     explicit VulkanInstanceSpecBuilder(PlatformInfoProvider* infoProvider, bool enableValidationLayers)
@@ -273,6 +411,7 @@ private:
     std::string m_engineName;
     bool m_enableValidationLayers;
 };
+*/
 
 class SystemFactory final {
 public:
@@ -284,14 +423,19 @@ public:
         }
 
         auto instanceInfo = m_infoProvider->getVulkanInstanceInfo();
-        auto instanceRequirements = instanceSpec.instanceRequirements();
-        auto missingRequirements = m_infoProvider->detectMissingInstanceRequirements(
+        auto instanceExtensions = instanceSpec.instanceExtensions();
+        auto instanceLayers = instanceSpec.instanceLayers();
+        auto missingExtensions = m_infoProvider->detectMissingInstanceExtensions(
             instanceInfo,
-            instanceRequirements
+            instanceExtensions
         );
-        if (!missingRequirements.isEmpty()) {
-            auto errorMessage = std::string { "Vulkan does not have the required extension on this system: " };
-            for (const auto& extensionName : missingRequirements.getExtensions()) {
+        auto missingLayers = m_infoProvider->detectMissingInstanceLayers(
+            instanceInfo,
+            instanceLayers
+        );
+        if (missingExtensions.empty() && !missingLayers.empty()) {
+            auto errorMessage = std::string { "Vulkan does not have the required extensions on this system:\n" };
+            for (const auto& extensionName : missingExtensions) {
                 errorMessage.append(extensionName);
                 errorMessage.append("\n");
             }
@@ -299,18 +443,48 @@ public:
             throw std::runtime_error { errorMessage };
         }
 
-        auto enabledLayerNames = instanceSpec.enabledLayerNames();
+        if (!missingExtensions.empty() && missingLayers.empty()) {
+            auto errorMessage = std::string { "Vulkan does not have the required layers on this system:\n" };
+            for (const auto& layerName : missingLayers) {
+                errorMessage.append(layerName);
+                errorMessage.append("\n");
+            }
+
+            throw std::runtime_error { errorMessage };
+        }
+
+        if (!missingExtensions.empty() && !missingLayers.empty()) {
+            auto errorMessage = std::string { "Vulkan does not have the required extensions on this system:\n" };
+            for (const auto& extensionName : missingExtensions) {
+                errorMessage.append(extensionName);
+                errorMessage.append("\n");
+            }
+
+            errorMessage.append(std::string { "Vulkan does not have the required layers on this system:\n" });
+            for (const auto& layerName : missingLayers) {
+                errorMessage.append(layerName);
+                errorMessage.append("\n");
+            }
+
+            throw std::runtime_error { errorMessage };
+        }
+
+        /*
+        auto instanceLayers = instanceSpec.instanceLayers();
+        */
         auto instanceCreateFlags = instanceSpec.instanceCreateFlags();
-        auto enabledLayerNamesCStrings = convertToCStrings(enabledLayerNames);
-        auto requiredExtensionsCStrings = convertToCStrings(instanceRequirements.getExtensions());
+        auto enabledLayerNames = convertToCStrings(instanceLayers);
+        auto enabledExtensionNames = convertToCStrings(instanceExtensions);
+        /*
         auto applicationName = instanceSpec.applicationName();
         auto engineName = instanceSpec.engineName();
+        */
 
         auto appInfo = VkApplicationInfo {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = applicationName.data();
+        appInfo.pApplicationName = instanceSpec.applicationName().data();
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = engineName.data();
+        appInfo.pEngineName = instanceSpec.engineName().data();
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_3;
 
@@ -318,10 +492,10 @@ public:
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         createInfo.flags |= instanceCreateFlags;
-        createInfo.enabledLayerCount = enabledLayerNamesCStrings.size();
-        createInfo.ppEnabledLayerNames = enabledLayerNamesCStrings.data();
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensionsCStrings.size());
-        createInfo.ppEnabledExtensionNames = requiredExtensionsCStrings.data();
+        createInfo.enabledLayerCount = enabledLayerNames.size();
+        createInfo.ppEnabledLayerNames = enabledLayerNames.data();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensionNames.size());
+        createInfo.ppEnabledExtensionNames = enabledExtensionNames.data();
 
         VkInstance instance = VK_NULL_HANDLE;
         auto result = vkCreateInstance(&createInfo, nullptr, &instance);
@@ -833,10 +1007,9 @@ public:
     }
 
     void createInstance() {
-        auto builder = VulkanInstanceSpecBuilder { this->m_infoProvider, enableValidationLayers };
-        auto instanceSpec = builder.build();
+        auto instanceSpecProvider = InstanceSpecProvider { enableValidationLayers, enableDebuggingExtensions };
+        auto instanceSpec = instanceSpecProvider.createInstanceSpec();
         auto instance = m_systemFactory->create(instanceSpec);
-       
         
         this->m_instance = instance;
     }

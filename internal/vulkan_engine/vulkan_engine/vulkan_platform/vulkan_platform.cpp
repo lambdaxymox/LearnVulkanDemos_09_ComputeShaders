@@ -87,43 +87,50 @@ std::vector<VkExtensionProperties> VulkanEngine::VulkanPlatform::PlatformInfoPro
     return instanceExtensionProperties;
 }
 
-MissingPlatformRequirements VulkanEngine::VulkanPlatform::PlatformInfoProvider::detectMissingInstanceRequirements(
+std::vector<std::string> VulkanEngine::VulkanPlatform::PlatformInfoProvider::detectMissingInstanceExtensions(
     const VulkanInstanceProperties& instanceInfo,
-    const VulkanInstanceRequirements& platformRequirements
+    const std::vector<std::string>& instanceExtensions
 ) const {
-    auto missingExtensionNames = std::vector<std::string> {};
-    auto availableExtensions = instanceInfo.getAvailableExtensions();
-    for (const auto& extensionName : platformRequirements.getExtensions()) {
+    auto missingInstanceExtensions = std::vector<std::string> {};
+    auto availableInstanceExtensions = instanceInfo.getAvailableExtensions();
+    for (const auto& extensionName : instanceExtensions) {
         auto found = std::find_if(
-            std::begin(availableExtensions),
-            std::end(availableExtensions),
+            std::begin(availableInstanceExtensions),
+            std::end(availableInstanceExtensions),
             [extensionName](const auto& extension) {
                 return strcmp(extensionName.data(), extension.extensionName) == 0;
             }
         );
-        auto extensionNotFound = (found == std::end(availableExtensions));
+        auto extensionNotFound = (found == std::end(availableInstanceExtensions));
         if (extensionNotFound) {
-            missingExtensionNames.emplace_back(extensionName);
+            missingInstanceExtensions.emplace_back(extensionName);
         }
     }
 
-    auto missingLayerNames = std::vector<std::string> {};
-    auto availableLayers = instanceInfo.getAvailableLayers();
-    for (const auto& layerName : platformRequirements.getLayers()) {
+    return missingInstanceExtensions;
+}
+
+std::vector<std::string> VulkanEngine::VulkanPlatform::PlatformInfoProvider::detectMissingInstanceLayers(
+    const VulkanInstanceProperties& instanceInfo,
+    const std::vector<std::string>& instanceLayers
+) const {
+    auto missingInstanceLayers = std::vector<std::string> {};
+    auto availableInstanceLayers = instanceInfo.getAvailableLayers();
+    for (const auto& layerName : instanceLayers) {
         auto found = std::find_if(
-            std::begin(availableLayers),
-            std::end(availableLayers),
+            std::begin(availableInstanceLayers),
+            std::end(availableInstanceLayers),
             [layerName](const auto& layer) {
                 return strcmp(layerName.data(), layer.layerName) == 0;
             }
         );
-        auto layerNotFound = (found == std::end(availableLayers));
+        auto layerNotFound = (found == std::end(availableInstanceLayers));
         if (layerNotFound) {
-            missingLayerNames.emplace_back(layerName);
+            missingInstanceLayers.emplace_back(layerName);
         }
     }
 
-    return MissingPlatformRequirements(missingExtensionNames, missingLayerNames);
+    return missingInstanceLayers;
 }
 
 MissingPhysicalDeviceRequirements VulkanEngine::VulkanPlatform::PlatformInfoProvider::detectMissingRequiredDeviceExtensions(
