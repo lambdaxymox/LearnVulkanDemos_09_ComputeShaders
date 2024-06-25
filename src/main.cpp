@@ -86,87 +86,6 @@ struct SwapChainSupportDetails final {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-/*
-class VulkanInstanceSpec final {
-public:
-    explicit VulkanInstanceSpec() = default;
-    ~VulkanInstanceSpec() = default;
-
-
-    const VulkanInstanceRequirements& instanceRequirements() const {
-        return m_instanceRequirements;
-    }
-
-    VkInstanceCreateFlags instanceCreateFlags() const {
-        return m_instanceCreateFlags;
-    }
-
-    const std::vector<std::string>& enabledLayerNames() const {
-        return m_enabledLayerNames;
-    }
-
-    const std::string& applicationName() const {
-        return m_applicationName;
-    }
-
-    const std::string& engineName() const {
-        return m_engineName;
-    }
-
-    bool areValidationLayersEnabled() const {
-        return m_enableValidationLayers;
-    }
-private:
-    VulkanInstanceRequirements m_instanceRequirements;
-    VkInstanceCreateFlags m_instanceCreateFlags;
-    std::vector<std::string> m_enabledLayerNames;
-    std::string m_applicationName;
-    std::string m_engineName;
-    bool m_enableValidationLayers;
-
-    friend class VulkanInstanceSpecBuilder;
-};
-*/
-/*
-class VulkanInstanceSpec final {
-public:
-    explicit VulkanInstanceSpec() = default;
-    ~VulkanInstanceSpec() = default;
-
-
-    const VulkanInstanceRequirements& instanceRequirements() const {
-        return m_instanceRequirements;
-    }
-
-    VkInstanceCreateFlags instanceCreateFlags() const {
-        return m_instanceCreateFlags;
-    }
-
-    const std::vector<std::string>& enabledLayerNames() const {
-        return m_enabledLayerNames;
-    }
-
-    const std::string& applicationName() const {
-        return m_applicationName;
-    }
-
-    const std::string& engineName() const {
-        return m_engineName;
-    }
-
-    bool areValidationLayersEnabled() const {
-        return m_enableValidationLayers;
-    }
-private:
-    std::vector<std::string> m_instanceExtensions;
-    std::vector<std::string> m_instanceLayers;
-    VkInstanceCreateFlags m_instanceCreateFlags;
-    std::vector<std::string> m_enabledLayerNames;
-    std::string m_applicationName;
-    std::string m_engineName;
-    bool m_enableValidationLayers;
-};
-*/
 class VulkanInstanceSpec final {
 public:
     explicit VulkanInstanceSpec() = default;
@@ -223,53 +142,6 @@ private:
     std::string m_engineName;
 };
 
-/*
-class InstanceRequirementsProvider final {
-public:
-    explicit InstanceRequirementsProvider() = default;
-    explicit InstanceRequirementsProvider(bool enableValidationLayers)
-        : m_enableValidationLayers { false }
-    {
-        m_infoProvider = PlatformInfoProvider {};
-    }
-
-    VkInstanceCreateFlags minInstanceCreateFlags() const {
-        auto flags = 0;
-        if (m_infoProvider.detectOperatingSystem() == Platform::Apple) {
-            flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-        }
-
-        return flags;
-    }
-
-    VulkanInstanceRequirements getInstanceRequirements() const {
-        auto vulkanExtensionsRequiredByGLFW = m_infoProvider.getWindowSystemInstanceRequirements();
-        return VulkanInstanceRequirementsBuilder()
-            .requirePortabilityExtensions()
-            .requireValidationLayers()
-            .requireDebuggingExtensions()
-            .includeFrom(vulkanExtensionsRequiredByGLFW)
-            .build();
-    }
-
-    std::vector<std::string> getEnabledLayerNames() const {
-        auto enabledLayerCount = 0;
-        auto enabledLayerNames = std::vector<std::string> {};
-
-        if (m_enableValidationLayers) {
-            enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-            enabledLayerNames = validationLayers;
-        } else {
-            enabledLayerCount = 0;
-        }
-
-        return enabledLayerNames;
-    }
-private:
-    PlatformInfoProvider m_infoProvider;
-    bool m_enableValidationLayers;
-};
-*/
 class InstanceSpecProvider final {
 public:
     InstanceSpecProvider() = default;
@@ -363,56 +235,6 @@ private:
     }
 };
 
-/*
-class VulkanInstanceSpecBuilder final {
-public:
-    explicit VulkanInstanceSpecBuilder(PlatformInfoProvider* infoProvider, bool enableValidationLayers)
-        : m_infoProvider { infoProvider }
-        , m_enableValidationLayers { enableValidationLayers }
-    {
-        m_requirementsProvider = InstanceRequirementsProvider { enableValidationLayers };
-        m_instanceCreateFlags = m_requirementsProvider.minInstanceCreateFlags();
-    }
-
-    ~VulkanInstanceSpecBuilder() {
-        this->m_infoProvider = nullptr;
-    }
-
-    VulkanInstanceSpecBuilder& withApplicationName(std::string&& engineName) {
-        m_engineName = engineName;
-
-        return *this;
-    }
-
-    bool areValidationLayersSupported() const {
-        auto instanceInfo = this->m_infoProvider->getVulkanInstanceInfo();
-
-        return instanceInfo.areValidationLayersAvailable();
-    }
-
-    VulkanInstanceSpec build() {
-        auto instanceRequirements = m_requirementsProvider.getInstanceRequirements();
-        auto enabledLayerNames = m_requirementsProvider.getEnabledLayerNames();
-        auto instanceSpec = VulkanInstanceSpec {};
-        instanceSpec.m_instanceRequirements = std::move(instanceRequirements);
-        instanceSpec.m_instanceCreateFlags = std::move(m_instanceCreateFlags);
-        instanceSpec.m_enabledLayerNames = std::move(enabledLayerNames);
-        instanceSpec.m_applicationName = std::move(m_applicationName);
-        instanceSpec.m_engineName = std::move(m_engineName);
-        instanceSpec.m_enableValidationLayers = std::move(m_enableValidationLayers);
-
-        return instanceSpec;
-    }
-private:
-    PlatformInfoProvider* m_infoProvider;
-    InstanceRequirementsProvider m_requirementsProvider;
-    VkInstanceCreateFlags m_instanceCreateFlags;
-    std::string m_applicationName = std::string { "" };
-    std::string m_engineName;
-    bool m_enableValidationLayers;
-};
-*/
-
 class SystemFactory final {
 public:
     explicit SystemFactory() = default;
@@ -469,16 +291,9 @@ public:
             throw std::runtime_error { errorMessage };
         }
 
-        /*
-        auto instanceLayers = instanceSpec.instanceLayers();
-        */
         auto instanceCreateFlags = instanceSpec.instanceCreateFlags();
         auto enabledLayerNames = convertToCStrings(instanceLayers);
         auto enabledExtensionNames = convertToCStrings(instanceExtensions);
-        /*
-        auto applicationName = instanceSpec.applicationName();
-        auto engineName = instanceSpec.engineName();
-        */
 
         auto appInfo = VkApplicationInfo {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
