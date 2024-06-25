@@ -1,10 +1,13 @@
 #ifndef VULKAN_PLATFORM_IMPL_FMT_H
 #define VULKAN_PLATFORM_IMPL_FMT_H
 
+/*
 #include "vulkan_platform/physical_device_properties.h"
 #include "vulkan_platform/physical_device_requirements.h"
 #include "vulkan_platform/vulkan_instance_properties.h"
 #include "vulkan_platform/vulkan_instance_requirements.h"
+*/
+#include "vulkan_platform.h"
 
 #include <fmt/core.h>
 

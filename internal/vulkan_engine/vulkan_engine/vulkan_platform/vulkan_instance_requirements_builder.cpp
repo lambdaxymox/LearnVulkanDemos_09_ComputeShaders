@@ -1,6 +1,5 @@
 #include "vulkan_instance_requirements_builder.h"
 #include "constants.h"
-#include "operating_system.h"
 
 #include <vulkan/vulkan.h>
 
@@ -8,12 +7,6 @@
 using VulkanInstanceRequirements = VulkanEngine::VulkanPlatform::VulkanInstanceRequirements;
 using VulkanInstanceRequirementsBuilder = VulkanEngine::VulkanPlatform::VulkanInstanceRequirementsBuilder;
 
-VulkanInstanceRequirementsBuilder::VulkanInstanceRequirementsBuilder() {
-    if (VulkanEngine::VulkanPlatform::detectOperatingSystem() == VulkanEngine::VulkanPlatform::Platform::Apple) {
-        m_instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-        m_instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    }
-}
 
 VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireExtension(const std::string& extensionName) {
     m_instanceExtensions.push_back(extensionName);
@@ -27,6 +20,13 @@ VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireLay
     return *this;
 }
 
+VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requirePortabilityExtensions() {
+    m_instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    m_instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+    return *this;
+}
+
 VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireDebuggingExtensions() {
     m_instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
@@ -34,8 +34,7 @@ VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireDeb
 }
 
 VulkanInstanceRequirementsBuilder& VulkanInstanceRequirementsBuilder::requireValidationLayers() {
-    m_instanceLayers.push_back(VulkanEngine::VulkanPlatform::VK_LAYER_KHRONOS_validation);
-    m_instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    m_instanceLayers.push_back(VulkanEngine::Constants::VK_LAYER_KHRONOS_validation);
 
     return *this;
 }

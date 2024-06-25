@@ -1,5 +1,4 @@
 #include "constants.h"
-#include "operating_system.h"
 #include "physical_device_requirements_builder.h"
 #include "physical_device_requirements.h"
 

@@ -88,11 +88,11 @@ add_executable(LearnVulkanDemos_01_HelloTriangle)
 target_sources(LearnVulkanDemos_01_HelloTriangle PRIVATE
     src/main.cpp
 )
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE Vulkan::Vulkan)
+target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE vulkan_engine)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE glfw)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE glm)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE fmt)
-target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE Vulkan::Vulkan)
-target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE vulkan_engine)
 add_dependencies(LearnVulkanDemos_01_HelloTriangle GLSL_Shaders)
 add_dependencies(LearnVulkanDemos_01_HelloTriangle HLSL_Shaders)
 

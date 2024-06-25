@@ -11,11 +11,13 @@ namespace VulkanPlatform {
 
 class VulkanInstanceRequirementsBuilder final {
 public:
-    explicit VulkanInstanceRequirementsBuilder();
+    explicit VulkanInstanceRequirementsBuilder() = default;
 
     VulkanInstanceRequirementsBuilder& requireExtension(const std::string& extensionName);
 
     VulkanInstanceRequirementsBuilder& requireLayer(const std::string& layerName);
+
+    VulkanInstanceRequirementsBuilder& requirePortabilityExtensions();
 
     VulkanInstanceRequirementsBuilder& requireDebuggingExtensions();
 

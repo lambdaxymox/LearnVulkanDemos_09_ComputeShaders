@@ -5,7 +5,7 @@
 
 namespace VulkanEngine {
 
-namespace VulkanPlatform {
+namespace Constants {
 
 
 const std::string VK_LAYER_KHRONOS_validation = std::string { "VK_LAYER_KHRONOS_validation" };

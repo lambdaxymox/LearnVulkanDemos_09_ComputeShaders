@@ -1,6 +1,4 @@
 #include "vulkan_instance_requirements.h"
-#include "operating_system.h"
-#include "constants.h"
 
 #include <vulkan/vulkan.h>
 #include <fmt/core.h>

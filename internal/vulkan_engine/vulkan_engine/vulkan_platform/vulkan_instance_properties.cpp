@@ -9,7 +9,7 @@ VulkanInstanceProperties::VulkanInstanceProperties(std::vector<VkLayerProperties
     , m_availableExtensions { availableExtensions }
 {
     for (const auto& layerProperties : availableLayers) {
-        if (strcmp(layerProperties.layerName, VulkanPlatform::VK_LAYER_KHRONOS_validation.data()) == 0) {
+        if (strcmp(layerProperties.layerName, Constants::VK_LAYER_KHRONOS_validation.data()) == 0) {
             m_validationLayersAvailable = true;
         }
     }

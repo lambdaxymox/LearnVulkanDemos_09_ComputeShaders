@@ -1,8 +1,5 @@
 #include <vulkan/vulkan.h>
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -22,12 +19,16 @@
 
 #include <unordered_set>
 
+#ifndef GLFW_INCLUDE_VULKAN
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#endif // GLFW_INCLUDE_VULKAN
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 const std::vector<std::string> validationLayers = std::vector<std::string> { 
-    VulkanEngine::VulkanPlatform::VK_LAYER_KHRONOS_validation
+    VulkanEngine::Constants::VK_LAYER_KHRONOS_validation
 };
 
 const std::vector<const char*> deviceExtensions = std::vector<const char*> {
@@ -51,9 +52,10 @@ using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceR
 using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
 using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 using MissingPlatformRequirements = VulkanEngine::VulkanPlatform::MissingPlatformRequirements;
-using Platform = VulkanEngine::VulkanPlatform::Platform;
+using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
+using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
 
-
+/*
 class PlatformInfoProvider {
 public:
     explicit PlatformInfoProvider() = default;
@@ -107,6 +109,7 @@ public:
         return instanceInfo.areValidationLayersAvailable();
     }
 };
+*/
 
 class InstanceRequirementsProvider final {
 public:
@@ -129,6 +132,7 @@ public:
     VulkanInstanceRequirements getInstanceRequirements() const {
         auto vulkanExtensionsRequiredByGLFW = m_infoProvider.getWindowSystemInstanceRequirements();
         return VulkanInstanceRequirementsBuilder()
+            .requirePortabilityExtensions()
             .requireValidationLayers()
             .requireDebuggingExtensions()
             .includeFrom(vulkanExtensionsRequiredByGLFW)
@@ -348,7 +352,7 @@ public:
         auto builder = PhysicalDeviceRequirementsBuilder {};
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
         if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
-            builder.requireExtension(VulkanEngine::VulkanPlatform::VK_KHR_portability_subset);
+            builder.requireExtension(VulkanEngine::Constants::VK_KHR_portability_subset);
         }
 
         return builder
@@ -500,7 +504,7 @@ public:
         auto builder = PhysicalDeviceRequirementsBuilder {};
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
         if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
-            builder.requireExtension(VulkanEngine::VulkanPlatform::VK_KHR_portability_subset);
+            builder.requireExtension(VulkanEngine::Constants::VK_KHR_portability_subset);
         }
 
         return builder
