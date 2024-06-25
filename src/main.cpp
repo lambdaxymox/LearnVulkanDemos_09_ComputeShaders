@@ -765,17 +765,12 @@ public:
         vkDestroyInstance(this->m_instance, nullptr);
     }
 
-    static Engine* create(GLFWwindow* window) {
-        auto newEngine = new Engine {};
-        newEngine->createInfoProvider();
-        newEngine->createSystemFactory();
-        newEngine->createInstance();
-        newEngine->createSurface(window);
-        newEngine->createDebugMessenger();
-        newEngine->selectPhysicalDevice();
-        newEngine->createLogicalDevice();
+    static Engine* createDebugMode(GLFWwindow* window) {
+        return create(window, true);
+    }
 
-        return newEngine;
+    static Engine* createReleaseMode(GLFWwindow* window) {
+        return create(window, false);
     }
 
     VkInstance getInstance() const {
@@ -819,7 +814,7 @@ public:
     }
 
     void createInstance() {
-        auto instanceSpecProvider = InstanceSpecProvider { enableValidationLayers, enableDebuggingExtensions };
+        auto instanceSpecProvider = InstanceSpecProvider { m_enableValidationLayers, m_enableDebuggingExtensions };
         auto instanceSpec = instanceSpecProvider.createInstanceSpec();
         auto instance = m_systemFactory->create(instanceSpec);
         
@@ -827,7 +822,7 @@ public:
     }
 
     void createDebugMessenger() {
-        if (!enableValidationLayers) {
+        if (!m_enableValidationLayers) {
             return;
         }
 
@@ -980,7 +975,32 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
 
+    bool m_enableValidationLayers; 
+    bool m_enableDebuggingExtensions;
+
     std::unordered_set<VkShaderModule> m_shaderModules;
+
+    static Engine* create(GLFWwindow* window, bool enableDebugging) {
+        auto newEngine = new Engine {};
+
+        if (enableDebugging) {
+            newEngine->m_enableValidationLayers = true;
+            newEngine->m_enableDebuggingExtensions = true;
+        } else {
+            newEngine->m_enableValidationLayers = false;
+            newEngine->m_enableDebuggingExtensions = false;
+        }
+
+        newEngine->createInfoProvider();
+        newEngine->createSystemFactory();
+        newEngine->createInstance();
+        newEngine->createSurface(window);
+        newEngine->createDebugMessenger();
+        newEngine->selectPhysicalDevice();
+        newEngine->createLogicalDevice();
+
+        return newEngine;
+    }
 };
 
 class App {
@@ -1020,6 +1040,7 @@ private:
     uint32_t m_currentFrame = 0;
 
     bool m_enableValidationLayers { false };
+    bool m_enableDebuggingExtensions { false };
 
     void cleanup() {
         if (this->m_engine->isInitialized()) {
@@ -1071,7 +1092,7 @@ private:
     }
 
     void createEngine() {
-        auto engine = Engine::create(this->m_window);
+        auto engine = Engine::createDebugMode(this->m_window);
 
         this->m_engine = engine;
     }
