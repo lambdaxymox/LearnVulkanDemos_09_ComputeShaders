@@ -321,6 +321,75 @@ private:
     PlatformInfoProvider* m_infoProvider;
 };
 
+class PhysicalDeviceSpec final {
+public:
+    explicit PhysicalDeviceSpec() = default;
+    explicit PhysicalDeviceSpec(const std::vector<std::string>& requiredExtensions, bool hasGraphicsFamily, bool hasPresentFamily)
+        : m_requiredExtensions { requiredExtensions }
+        , m_hasGraphicsFamily { hasGraphicsFamily }
+        , m_hasPresentFamily { hasPresentFamily }
+    {
+    }
+    ~PhysicalDeviceSpec() = default;
+
+    const std::vector<std::string>& requiredExtensions() const {
+        return m_requiredExtensions;
+    }
+
+    bool hasGraphicsFamily() const {
+        return m_hasGraphicsFamily;
+    }
+
+    bool hasPresentFamily() const {
+        return m_hasPresentFamily;
+    }
+private:
+    std::vector<std::string> m_requiredExtensions;
+    bool m_hasGraphicsFamily;
+    bool m_hasPresentFamily;
+};
+
+class PhysicalDeviceSpecProvider final {
+public:
+    explicit PhysicalDeviceSpecProvider() = default;
+
+    PhysicalDeviceSpec createPhysicalDeviceSpec() const {
+        auto requiredExtensions = this->getPhysicalDeviceRequirements();
+
+        return PhysicalDeviceSpec { requiredExtensions, true, true };
+    }
+private:
+    enum class Platform {
+        Apple,
+        Linux,
+        Windows,
+        Unknown
+    };
+
+    Platform getOperatingSystem() const {
+        #if defined(__APPLE__) || defined(__MACH__)
+        return Platform::Apple;
+        #elif defined(__LINUX__)
+        return Platform::Linux;
+        #elif defined(_WIN32)
+        return Platform::Windows;
+        #else
+        return Platform::Unknown;
+        #endif
+    }
+
+    std::vector<std::string> getPhysicalDeviceRequirements() const {
+        auto physicalDeviceExtensions = std::vector<std::string> {};
+        if (this->getOperatingSystem() == Platform::Apple) {
+            physicalDeviceExtensions.push_back(VulkanEngine::Constants::VK_KHR_portability_subset);
+        }
+
+        physicalDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+        return physicalDeviceExtensions;
+    }
+};
+
 class PhysicalDeviceSelector final {
 public:
     explicit PhysicalDeviceSelector(VkInstance instance, PlatformInfoProvider* infoProvider)
@@ -334,6 +403,7 @@ public:
         this->m_infoProvider = nullptr;
     }
 
+    /*
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
         auto builder = PhysicalDeviceRequirementsBuilder {};
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
@@ -345,6 +415,7 @@ public:
             .requireExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             .build();
     }
+    */
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
         auto indices = QueueFamilyIndices {};
@@ -378,19 +449,21 @@ public:
         return indices;
     }
 
-    bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::set<std::string>& requiredExtensions) const {
+    bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vector<std::string>& requiredExtensions) const {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
 
         auto availableExtensions = std::vector<VkExtensionProperties> { extensionCount };
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
-        auto _requiredExtensions = std::set<std::string> { requiredExtensions };
+        auto remainingExtensions = std::set<std::string> { requiredExtensions.begin(), requiredExtensions.end() };
         for (const auto& extension : availableExtensions) {
-            _requiredExtensions.erase(extension.extensionName);
+            for (const auto& requiredExtension : requiredExtensions) {
+                remainingExtensions.erase(extension.extensionName);
+            }
         }
 
-        return _requiredExtensions.empty();
+        return remainingExtensions.empty();
     }
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
@@ -416,10 +489,13 @@ public:
         return details;
     }
 
-    bool isPhysicalDeviceCompatible(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) const {
+    bool isPhysicalDeviceCompatible(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const PhysicalDeviceSpec& physicalDeviceSpec) const {
         QueueFamilyIndices indices = this->findQueueFamilies(physicalDevice, surface);
 
-        bool areRequiredExtensionsSupported = this->checkDeviceExtensionSupport(physicalDevice, requiredExtensions);
+        bool areRequiredExtensionsSupported = this->checkDeviceExtensionSupport(
+            physicalDevice,
+            physicalDeviceSpec.requiredExtensions()
+        );
 
         bool swapChainCompatible = false;
         if (areRequiredExtensionsSupported) {
@@ -440,7 +516,7 @@ public:
         return physicalDevices;
     }
 
-    std::vector<VkPhysicalDevice> findCompatiblePhysicalDevices(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) const {
+    std::vector<VkPhysicalDevice> findCompatiblePhysicalDevices(VkSurfaceKHR surface, const PhysicalDeviceSpec& physicalDeviceSpec) const {
         auto physicalDevices = this->findAllPhysicalDevices();
         if (physicalDevices.empty()) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
@@ -448,7 +524,7 @@ public:
 
         auto compatiblePhysicalDevices = std::vector<VkPhysicalDevice> {};
         for (const auto& physicalDevice : physicalDevices) {
-            if (this->isPhysicalDeviceCompatible(physicalDevice, surface, requiredExtensions)) {
+            if (this->isPhysicalDeviceCompatible(physicalDevice, surface, physicalDeviceSpec)) {
                 compatiblePhysicalDevices.emplace_back(physicalDevice);
             }
         }
@@ -456,8 +532,8 @@ public:
         return compatiblePhysicalDevices;
     }
 
-    VkPhysicalDevice selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) const {
-        auto physicalDevices = this->findCompatiblePhysicalDevices(surface, requiredExtensions);
+    VkPhysicalDevice selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const PhysicalDeviceSpec& physicalDeviceSpec) const {
+        auto physicalDevices = this->findCompatiblePhysicalDevices(surface, physicalDeviceSpec);
         if (physicalDevices.empty()) {
             throw std::runtime_error("failed to find a suitable GPU!");
         }
@@ -840,16 +916,20 @@ public:
         this->m_surface = surface;
     }
 
-    VkPhysicalDevice selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const std::set<std::string>& requiredExtensions) {
+    VkPhysicalDevice selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const PhysicalDeviceSpec& physicalDeviceSpec) {
         auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
-        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(surface, requiredExtensions);
+        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(
+            surface,
+            physicalDeviceSpec
+        );
 
         return selectedPhysicalDevice;
     }
 
     void selectPhysicalDevice() {
-        auto requiredExtensions = std::set<std::string> { deviceExtensions.begin(), deviceExtensions.end() };
-        auto selectedPhysicalDevice = this->selectPhysicalDeviceForSurface(m_surface, requiredExtensions);
+        auto physicalDeviceSpecProvider = PhysicalDeviceSpecProvider {};
+        auto physicalDeviceSpec = physicalDeviceSpecProvider.createPhysicalDeviceSpec();
+        auto selectedPhysicalDevice = this->selectPhysicalDeviceForSurface(m_surface, physicalDeviceSpec);
 
         this->m_physicalDevice = selectedPhysicalDevice;
     }
