@@ -880,38 +880,53 @@ public:
         // We do not need to destroy `m_physicalDevice`.
         vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
         vkDestroyInstance(this->m_instance, nullptr);
+
+        glfwDestroyWindow(m_window);
+        glfwTerminate();
     }
 
-    static Engine* createDebugMode(GLFWwindow* window) {
-        return create(window, true);
+    static Engine* createDebugMode() {
+        return Engine::create(true);
     }
 
-    static Engine* createReleaseMode(GLFWwindow* window) {
-        return create(window, false);
+    static Engine* createReleaseMode() {
+        return Engine::create(false);
     }
 
     VkInstance getInstance() const {
         return m_instance;
     }
 
-    VkPhysicalDevice getPhysicalDevice() {
+    VkPhysicalDevice getPhysicalDevice() const {
         return m_physicalDevice;
     }
 
-    VkDevice getLogicalDevice() {
+    VkDevice getLogicalDevice() const {
         return m_device;
     }
 
-    VkQueue getGraphicsQueue() {
+    VkQueue getGraphicsQueue() const {
         return m_graphicsQueue;
     }
 
-    VkQueue getPresentQueue() {
+    VkQueue getPresentQueue() const {
         return m_presentQueue;
     }
 
-    VkSurfaceKHR getSurface() {
+    VkSurfaceKHR getSurface() const {
         return m_surface;
+    }
+
+    GLFWwindow* getWindow() const {
+        return m_window;
+    }
+
+    bool hasFramebufferResized() const {
+        return m_framebufferResized;
+    }
+
+    void setFramebufferResized(bool framebufferResized) {
+        m_framebufferResized = framebufferResized;
     }
 
     bool isInitialized() const {
@@ -928,6 +943,31 @@ public:
         auto systemFactory = new SystemFactory {};
 
         m_systemFactory = systemFactory;
+    }
+
+    void createWindowSystem() {
+        auto result = glfwInit();
+        if (!result) {
+            glfwTerminate();
+
+            auto errorMessage = std::string { "Failed to initialize GLFW" };
+            throw std::runtime_error { errorMessage };
+        }
+    }
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto engine = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
+        engine->m_framebufferResized = true;
+    }
+
+    void createWindow() {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+        auto window = glfwCreateWindow(WIDTH, HEIGHT, "Hello Triangle", nullptr, nullptr);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
+        m_window = window;
     }
 
     void createInstance() {
@@ -947,9 +987,9 @@ public:
         this->m_debugMessenger = debugMessenger;
     }
 
-    void createSurface(GLFWwindow* window) {
+    void createSurface() {
         auto surface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, window, nullptr, &surface);
+        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
@@ -1098,12 +1138,15 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
 
+    GLFWwindow* m_window;
+    bool m_framebufferResized;
+
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
 
     std::unordered_set<VkShaderModule> m_shaderModules;
 
-    static Engine* create(GLFWwindow* window, bool enableDebugging) {
+    static Engine* create(bool enableDebugging) {
         auto newEngine = new Engine {};
 
         if (enableDebugging) {
@@ -1116,8 +1159,10 @@ private:
 
         newEngine->createInfoProvider();
         newEngine->createSystemFactory();
+        newEngine->createWindowSystem();
         newEngine->createInstance();
-        newEngine->createSurface(window);
+        newEngine->createWindow();
+        newEngine->createSurface();
         newEngine->createDebugMessenger();
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
@@ -1129,8 +1174,10 @@ private:
 class App {
 public:
     void run() {
+        /*
         this->initWindowSystem();
         this->initWindow();
+        */
         this->initVulkan();
         this->mainLoop();
         this->cleanup();
@@ -1148,8 +1195,6 @@ private:
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
 
-    bool m_framebufferResized = false;
-
     VkSwapchainKHR m_swapChain;
     std::vector<VkImage> m_swapChainImages;
     VkFormat m_swapChainImageFormat;
@@ -1158,8 +1203,7 @@ private:
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
     VkExtent2D m_windowExtent { WIDTH, HEIGHT };
-    GLFWwindow* m_window { nullptr };
-
+    
     uint32_t m_currentFrame = 0;
 
     bool m_enableValidationLayers { false };
@@ -1183,39 +1227,11 @@ private:
             vkDestroyCommandPool(this->m_engine->getLogicalDevice(), m_commandPool, nullptr);
 
             delete m_engine;
-
-            glfwDestroyWindow(m_window);
-            glfwTerminate();
         }
-    }
-
-    void initWindowSystem() {
-        auto result = glfwInit();
-        if (!result) {
-            glfwTerminate();
-
-            auto errorMessage = std::string { "Failed to initialize GLFW" };
-            throw std::runtime_error { errorMessage };
-        }
-    }
-
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
-        app->m_framebufferResized = true;
-    }
-
-    void initWindow() {
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        auto window = glfwCreateWindow(WIDTH, HEIGHT, "Hello Triangle", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
-        m_window = window;
     }
 
     void createEngine() {
-        auto engine = Engine::createDebugMode(this->m_window);
+        auto engine = Engine::createDebugMode();
 
         this->m_engine = engine;
     }
@@ -1234,7 +1250,7 @@ private:
     }
 
     void mainLoop() {
-        while (!glfwWindowShouldClose(m_window)) {
+        while (!glfwWindowShouldClose(this->m_engine->getWindow())) {
             glfwPollEvents();
             this->draw();
         }
@@ -1268,7 +1284,7 @@ private:
             return capabilities.currentExtent;
         } else {
             int width, height;
-            glfwGetWindowSize(m_window, &width, &height);
+            glfwGetWindowSize(m_engine->getWindow(), &width, &height);
 
             auto actualExtent = VkExtent2D {
                 static_cast<uint32_t>(width),
@@ -1754,8 +1770,8 @@ private:
         presentInfo.pImageIndices = &imageIndex;
 
         result = vkQueuePresentKHR(this->m_engine->getPresentQueue(), &presentInfo);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized) {
-            m_framebufferResized = false;
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
+            m_engine->setFramebufferResized(false);
             this->recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
@@ -1779,9 +1795,9 @@ private:
     void recreateSwapChain() {
         int width = 0;
         int height = 0;
-        glfwGetFramebufferSize(m_window, &width, &height);
+        glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
         while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(m_window, &width, &height);
+            glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
             glfwWaitEvents();
         }
 
