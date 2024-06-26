@@ -2,7 +2,6 @@
 
 
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
-using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 
 
@@ -121,14 +120,6 @@ auto fmt::formatter<PhysicalDeviceProperties>::format(const PhysicalDeviceProper
         ctx.out(),
         "PhysicalDeviceProperties {{ deviceExtensions: {} }}",
         deviceProperties.getExtensions()
-    );
-}
-
-auto fmt::formatter<PhysicalDeviceRequirements>::format(const PhysicalDeviceRequirements& deviceRequirements, format_context& ctx) const -> format_context::iterator {
-    return fmt::format_to(
-        ctx.out(),
-        "PhysicalDeviceRequirements {{ deviceExtensions: {} }}",
-        deviceRequirements.getExtensions()
     );
 }
 

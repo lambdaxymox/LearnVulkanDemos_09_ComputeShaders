@@ -7,7 +7,6 @@
 
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
-using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
 
 
 VulkanInstanceProperties VulkanEngine::VulkanPlatform::PlatformInfoProvider::getVulkanInstanceInfo() const {
@@ -125,12 +124,11 @@ std::vector<std::string> VulkanEngine::VulkanPlatform::PlatformInfoProvider::det
     return missingInstanceLayers;
 }
 
-MissingPhysicalDeviceRequirements VulkanEngine::VulkanPlatform::PlatformInfoProvider::detectMissingRequiredDeviceExtensions(
+std::vector<std::string> VulkanEngine::VulkanPlatform::PlatformInfoProvider::detectMissingRequiredDeviceExtensions(
     const PhysicalDeviceProperties& physicalDeviceProperties,
-    const PhysicalDeviceRequirements& physicalDeviceRequirements
+    const std::vector<std::string>& requiredExtensions
 ) const {
-    auto missingExtensionNames = std::vector<std::string> {};
-    auto requiredExtensions = physicalDeviceRequirements.getExtensions();
+    auto missingExtensions = std::vector<std::string> {};
     for (const auto& requiredExtension : requiredExtensions) {
         auto found = std::find_if(
             std::begin(requiredExtensions),
@@ -141,11 +139,11 @@ MissingPhysicalDeviceRequirements VulkanEngine::VulkanPlatform::PlatformInfoProv
         );
         auto extensionNotFound = (found == std::end(requiredExtensions));
         if (extensionNotFound) {
-            missingExtensionNames.emplace_back(requiredExtension);
+            missingExtensions.emplace_back(requiredExtension);
         }
     }
 
-    return PhysicalDeviceRequirements(missingExtensionNames);
+    return missingExtensions;
 }
 
 bool VulkanEngine::VulkanPlatform::PlatformInfoProvider::areValidationLayersSupported() const {

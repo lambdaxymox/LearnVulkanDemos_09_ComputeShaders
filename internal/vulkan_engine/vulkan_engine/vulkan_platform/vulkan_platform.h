@@ -4,16 +4,11 @@
 #include "constants.h"
 #include "vulkan_instance_properties.h"
 #include "physical_device_properties.h"
-#include "physical_device_requirements_builder.h"
-#include "physical_device_requirements.h"
 
 
 namespace VulkanEngine {
 
 namespace VulkanPlatform {
-
-
-using MissingPhysicalDeviceRequirements = PhysicalDeviceRequirements;
 
 
 class PlatformInfoProvider {
@@ -33,9 +28,9 @@ public:
 
     std::vector<std::string> getWindowSystemInstanceExtensions() const;
 
-    MissingPhysicalDeviceRequirements detectMissingRequiredDeviceExtensions(
+    std::vector<std::string> detectMissingRequiredDeviceExtensions(
         const PhysicalDeviceProperties& physicalDeviceProperties,
-        const PhysicalDeviceRequirements& physicalDeviceRequirements
+        const std::vector<std::string>& requiredExtensions
     ) const;
 
     Platform detectOperatingSystem() const {

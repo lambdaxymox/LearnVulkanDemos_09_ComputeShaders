@@ -48,9 +48,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
-using PhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements;
-using MissingPhysicalDeviceRequirements = VulkanEngine::VulkanPlatform::MissingPhysicalDeviceRequirements;
-using PhysicalDeviceRequirementsBuilder = VulkanEngine::VulkanPlatform::PhysicalDeviceRequirementsBuilder;
 using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
 using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
 
@@ -533,6 +530,77 @@ private:
     PlatformInfoProvider* m_infoProvider;
 };
 
+
+class LogicalDeviceSpec final {
+public:
+    explicit LogicalDeviceSpec() = default;
+    explicit LogicalDeviceSpec(const std::vector<std::string>& requiredExtensions)
+        : m_requiredExtensions { requiredExtensions }
+    {
+    }
+    ~LogicalDeviceSpec() = default;
+
+    const std::vector<std::string>& requiredExtensions() const {
+        return m_requiredExtensions;
+    }
+private:
+    std::vector<std::string> m_requiredExtensions;
+};
+
+class LogicalDeviceSpecProvider final {
+public:
+    explicit LogicalDeviceSpecProvider() = default;
+    explicit LogicalDeviceSpecProvider(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) 
+        : m_physicalDevice { physicalDevice }
+        , m_surface { surface }
+    {
+    }
+
+    ~LogicalDeviceSpecProvider() {
+        m_physicalDevice = VK_NULL_HANDLE;
+        m_surface = VK_NULL_HANDLE;
+    }
+
+    LogicalDeviceSpec createLogicalDeviceSpec() const {
+        auto requiredExtensions = this->getLogicalDeviceRequirements();
+
+        return LogicalDeviceSpec { requiredExtensions };
+    }
+private:
+    VkPhysicalDevice m_physicalDevice;
+    VkSurfaceKHR m_surface;
+
+    enum class Platform {
+        Apple,
+        Linux,
+        Windows,
+        Unknown
+    };
+
+    Platform getOperatingSystem() const {
+        #if defined(__APPLE__) || defined(__MACH__)
+        return Platform::Apple;
+        #elif defined(__LINUX__)
+        return Platform::Linux;
+        #elif defined(_WIN32)
+        return Platform::Windows;
+        #else
+        return Platform::Unknown;
+        #endif
+    }
+
+    std::vector<std::string> getLogicalDeviceRequirements() const {
+        auto logicalDeviceExtensions = std::vector<std::string> {};
+        if (this->getOperatingSystem() == Platform::Apple) {
+            logicalDeviceExtensions.push_back(VulkanEngine::Constants::VK_KHR_portability_subset);
+        }
+
+        logicalDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+        return logicalDeviceExtensions;
+    }
+};
+
 class LogicalDeviceFactory final {
 public:
     explicit LogicalDeviceFactory(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, PlatformInfoProvider* infoProvider)
@@ -548,6 +616,7 @@ public:
         m_infoProvider = nullptr;
     }
 
+    /*
     PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
         auto builder = PhysicalDeviceRequirementsBuilder {};
         // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
@@ -559,6 +628,7 @@ public:
             .requireExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
             .build();
     }
+    */
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
         auto indices = QueueFamilyIndices {};
@@ -615,7 +685,7 @@ public:
         return details;
     }
 
-    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice() {
+    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice(const LogicalDeviceSpec& logicalDeviceSpec) {
         QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice, m_surface);
 
         auto uniqueQueueFamilies = std::set<uint32_t> {
@@ -643,21 +713,20 @@ public:
         createInfo.pEnabledFeatures = &deviceFeatures;
 
         auto deviceExtensionProperties = this->m_infoProvider->getAvailableVulkanDeviceExtensions(m_physicalDevice);
-        auto requiredDeviceExtensions = this->getDeviceRequirements(m_physicalDevice);
-        auto missingRequirements = this->m_infoProvider->detectMissingRequiredDeviceExtensions(
+        auto missingExtensions = this->m_infoProvider->detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
-            requiredDeviceExtensions
+            logicalDeviceSpec.requiredExtensions()
         );
-        if (!missingRequirements.isEmpty()) {
-            auto errorMessage = std::string { "Vulkan does not have the required extension on this system: " };
-            for (const auto& extension : missingRequirements.getExtensions()) {
+        if (!missingExtensions.empty()) {
+            auto errorMessage = std::string { "Vulkan does not have the required extensions on this system: " };
+            for (const auto& extension : missingExtensions) {
                 errorMessage.append(extension);
                 errorMessage.append("\n");
             }
 
             throw std::runtime_error(errorMessage);
         }
-        auto enabledExtensions = convertToCStrings(requiredDeviceExtensions.getExtensions());
+        auto enabledExtensions = convertToCStrings(logicalDeviceSpec.requiredExtensions());
         createInfo.enabledExtensionCount = enabledExtensions.size();
         createInfo.ppEnabledExtensionNames = enabledExtensions.data();
         
@@ -977,7 +1046,9 @@ public:
 
     void createLogicalDevice() {
         auto factory = LogicalDeviceFactory { m_physicalDevice, m_surface, m_infoProvider };
-        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice();
+        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, m_surface };
+        auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
+        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
 
         this->m_device = device;
         this->m_graphicsQueue = graphicsQueue;

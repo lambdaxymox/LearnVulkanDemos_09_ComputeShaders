@@ -10,10 +10,6 @@ template <> struct fmt::formatter<VulkanEngine::VulkanPlatform::PhysicalDevicePr
     auto format(const VulkanEngine::VulkanPlatform::PhysicalDeviceProperties& deviceProperties, format_context& ctx) const -> format_context::iterator;
 };
 
-template <> struct fmt::formatter<VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements>: fmt::formatter<string_view> {
-    auto format(const VulkanEngine::VulkanPlatform::PhysicalDeviceRequirements& deviceRequirements, format_context& ctx) const -> format_context::iterator;
-};
-
 template <> struct fmt::formatter<VulkanEngine::VulkanPlatform::VulkanInstanceProperties>: fmt::formatter<string_view> {
     auto format(const VulkanEngine::VulkanPlatform::VulkanInstanceProperties& platformInfo, format_context& ctx) const -> format_context::iterator;
 };
