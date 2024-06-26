@@ -616,20 +616,6 @@ public:
         m_infoProvider = nullptr;
     }
 
-    /*
-    PhysicalDeviceRequirements getDeviceRequirements(VkPhysicalDevice physicalDevice) const {
-        auto builder = PhysicalDeviceRequirementsBuilder {};
-        // https://stackoverflow.com/questions/66659907/vulkan-validation-warning-catch-22-about-vk-khr-portability-subset-on-moltenvk
-        if (this->m_infoProvider->detectOperatingSystem() == Platform::Apple) {
-            builder.requireExtension(VulkanEngine::Constants::VK_KHR_portability_subset);
-        }
-
-        return builder
-            .requireExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
-            .build();
-    }
-    */
-
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
         auto indices = QueueFamilyIndices {};
 
