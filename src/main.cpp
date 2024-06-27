@@ -965,12 +965,12 @@ public:
         glfwTerminate();
     }
 
-    static Engine* createDebugMode() {
-        return Engine::create(true);
+    static Engine* createDebugMode(uint32_t width, uint32_t height, const std::string& title) {
+        return Engine::create(true, width, height, title);
     }
 
-    static Engine* createReleaseMode() {
-        return Engine::create(false);
+    static Engine* createReleaseMode(uint32_t width, uint32_t height, const std::string& title) {
+        return Engine::create(false, width, height, title);
     }
 
     VkInstance getInstance() const {
@@ -1061,9 +1061,6 @@ public:
 
     void createWindow(uint32_t width, uint32_t height, const std::string& title) {
         m_windowSystem->createWindow(width, height, title);
-    }
-
-    void createSurface() {
         m_surface = m_windowSystem->getSurfaceHandle();
     }
 
@@ -1209,7 +1206,7 @@ private:
 
     std::unordered_set<VkShaderModule> m_shaderModules;
 
-    static Engine* create(bool enableDebugging) {
+    static Engine* create(bool enableDebugging, uint32_t width, uint32_t height, const std::string& title) {
         auto newEngine = new Engine {};
 
         if (enableDebugging) {
@@ -1226,8 +1223,7 @@ private:
         newEngine->createInstance();
         newEngine->createDebugMessenger();
         newEngine->createWindowSystem();
-        newEngine->createWindow(WIDTH, HEIGHT, "Hello Triangle");
-        newEngine->createSurface();
+        newEngine->createWindow(width, height, title);
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
 
@@ -1291,7 +1287,7 @@ private:
     }
 
     void createEngine() {
-        auto engine = Engine::createDebugMode();
+        auto engine = Engine::createDebugMode(WIDTH, HEIGHT, "Hello, Triangle!");
 
         this->m_engine = engine;
     }
