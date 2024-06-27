@@ -1311,8 +1311,6 @@ private:
     VkExtent2D m_swapChainExtent;
     std::vector<VkImageView> m_swapChainImageViews;
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
-
-    VkExtent2D m_windowExtent { WIDTH, HEIGHT };
     
     uint32_t m_currentFrame = 0;
 
