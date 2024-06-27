@@ -1035,36 +1035,6 @@ public:
         m_systemFactory = systemFactory;
     }
 
-    /*
-    void createWindowSystem() {
-        auto result = glfwInit();
-        if (!result) {
-            glfwTerminate();
-
-            auto errorMessage = std::string { "Failed to initialize GLFW" };
-            throw std::runtime_error { errorMessage };
-        }
-    }
-    */
-
-    /*
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto engine = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
-        engine->m_framebufferResized = true;
-    }
-
-    void createWindow(uint32_t width, uint32_t height, const std::string& title) {
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        auto window = glfwCreateWindow(width, height, title.data(), nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
-        m_window = window;
-
-        this->createSurface();
-    }
-    */
     void createInstance() {
         auto instanceSpecProvider = InstanceSpecProvider { m_enableValidationLayers, m_enableDebuggingExtensions };
         auto instanceSpec = instanceSpecProvider.createInstanceSpec();
@@ -1088,17 +1058,6 @@ public:
         this->m_debugMessenger = debugMessenger;
     }
 
-    /*
-    void createSurface() {
-        auto surface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface!");
-        }
-
-        this->m_surface = surface;
-    }
-    */
     void createWindow(uint32_t width, uint32_t height, const std::string& title) {
         m_windowSystem->createWindow(width, height, title);
     }
@@ -1242,10 +1201,6 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
 
-    /*
-    GLFWwindow* m_window;
-    bool m_framebufferResized;
-    */
     WindowSystem* m_windowSystem;
 
     bool m_enableValidationLayers; 
