@@ -1174,10 +1174,6 @@ private:
 class App {
 public:
     void run() {
-        /*
-        this->initWindowSystem();
-        this->initWindow();
-        */
         this->initVulkan();
         this->mainLoop();
         this->cleanup();
