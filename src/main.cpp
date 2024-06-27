@@ -892,6 +892,7 @@ public:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
         m_window = window;
+        m_windowExtent = VkExtent2D { width, height };
 
         this->createSurface();
     }
@@ -919,11 +920,16 @@ private:
     VkInstance m_instance;
     GLFWwindow* m_window;
     VkSurfaceKHR m_surface;
+    VkExtent2D m_windowExtent;
     bool m_framebufferResized;
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto windowSystem = reinterpret_cast<WindowSystem*>(glfwGetWindowUserPointer(window));
         windowSystem->m_framebufferResized = true;
+        windowSystem->m_windowExtent = VkExtent2D { 
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
     }
 
     void createWindowSystem() {
