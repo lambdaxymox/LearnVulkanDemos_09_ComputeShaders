@@ -948,6 +948,73 @@ private:
     }
 };
 
+class ShaderManager final {
+public:
+    explicit ShaderManager(VkDevice device)
+        : m_device { device }
+        , m_shaderModules { std::unordered_set<VkShaderModule> {} }
+    {
+    }
+
+    ~ShaderManager() {
+        for (const auto& shaderModule : m_shaderModules) {
+            vkDestroyShaderModule(m_device, shaderModule, nullptr);
+        }
+
+        m_device = VK_NULL_HANDLE;
+    }
+
+    std::vector<char> loadShader(std::istream& stream) {
+        size_t shaderSize = static_cast<size_t>(stream.tellg());
+        auto buffer = std::vector<char>(shaderSize);
+
+        stream.seekg(0);
+        stream.read(buffer.data(), shaderSize);
+
+        return buffer;
+    }
+
+    std::vector<char> loadShaderFromFile(const std::string& fileName) {
+        auto stream = this->openShaderFile(fileName);
+        auto shader = this->loadShader(stream);
+        stream.close();
+
+        return shader;
+    }
+
+    VkShaderModule createShaderModule(const std::vector<char>& code) {
+        auto createInfo = VkShaderModuleCreateInfo {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.pNext = nullptr;
+        createInfo.flags = 0;
+
+        auto shaderModule = VkShaderModule {};
+        auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module!");
+        }
+
+        m_shaderModules.insert(shaderModule);
+
+        return shaderModule;
+    }
+
+    std::ifstream openShaderFile(const std::string& fileName) {
+        auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
+
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open file!");
+        }
+
+        return file;
+    }
+private:
+    VkDevice m_device;
+    std::unordered_set<VkShaderModule> m_shaderModules;
+};
+
 class Engine final {
 public:
     explicit Engine() = default;
@@ -1146,7 +1213,14 @@ public:
         m_presentQueue = presentQueue;
     }
 
+    void createShaderManager() {
+        auto shaderManager = new ShaderManager { m_device };
+
+        m_shaderManager = shaderManager;
+    }
+
     std::vector<char> loadShader(std::istream& stream) {
+        /*
         size_t shaderSize = static_cast<size_t>(stream.tellg());
         auto buffer = std::vector<char>(shaderSize);
 
@@ -1154,17 +1228,23 @@ public:
         stream.read(buffer.data(), shaderSize);
 
         return buffer;
+        */
+        return m_shaderManager->loadShader(stream);
     }
 
     std::vector<char> loadShaderFromFile(const std::string& fileName) {
+        /*
         auto stream = this->openShaderFile(fileName);
         auto shader = this->loadShader(stream);
         stream.close();
 
         return shader;
+        */
+        return m_shaderManager->loadShaderFromFile(fileName);
     }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
+        /*
         auto createInfo = VkShaderModuleCreateInfo {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
@@ -1181,9 +1261,12 @@ public:
         m_shaderModules.insert(shaderModule);
 
         return shaderModule;
+        */
+        return m_shaderManager->createShaderModule(code);
     }
 
     std::ifstream openShaderFile(const std::string& fileName) {
+        /*
         auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
 
         if (!file.is_open()) {
@@ -1191,6 +1274,8 @@ public:
         }
 
         return file;
+        */
+        return m_shaderManager->openShaderFile(fileName);
     }
 private:
     PlatformInfoProvider* m_infoProvider;
@@ -1203,11 +1288,10 @@ private:
     VkDevice m_device;
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
+    ShaderManager* m_shaderManager;
 
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
-
-    std::unordered_set<VkShaderModule> m_shaderModules;
 
     static Engine* create(bool enableDebugging, uint32_t width, uint32_t height, const std::string& title) {
         auto newEngine = new Engine {};
@@ -1229,6 +1313,7 @@ private:
         newEngine->createWindow(width, height, title);
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
+        newEngine->createShaderManager();
 
         return newEngine;
     }
