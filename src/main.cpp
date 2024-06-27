@@ -960,14 +960,16 @@ public:
         engine->m_framebufferResized = true;
     }
 
-    void createWindow() {
+    void createWindow(uint32_t width, uint32_t height, const std::string& title) {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        auto window = glfwCreateWindow(WIDTH, HEIGHT, "Hello Triangle", nullptr, nullptr);
+        auto window = glfwCreateWindow(width, height, title.data(), nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
         m_window = window;
+
+        this->createSurface();
     }
 
     void createInstance() {
@@ -1155,9 +1157,8 @@ private:
         newEngine->createSystemFactory();
         newEngine->createWindowSystem();
         newEngine->createInstance();
-        newEngine->createWindow();
-        newEngine->createSurface();
         newEngine->createDebugMessenger();
+        newEngine->createWindow(WIDTH, HEIGHT, "Hello Triangle");
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
 
@@ -1168,7 +1169,7 @@ private:
 class App {
 public:
     void run() {
-        this->initVulkan();
+        this->initEngine();
         this->mainLoop();
         this->cleanup();
     }
@@ -1226,7 +1227,7 @@ private:
         this->m_engine = engine;
     }
 
-    void initVulkan() {
+    void initEngine() {
         this->createEngine();
 
         this->createSwapChain();
