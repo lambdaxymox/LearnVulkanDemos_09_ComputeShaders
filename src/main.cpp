@@ -396,8 +396,8 @@ public:
     }
 
     ~PhysicalDeviceSelector() {
-        this->m_instance = VK_NULL_HANDLE;
-        this->m_infoProvider = nullptr;
+        m_instance = VK_NULL_HANDLE;
+        m_infoProvider = nullptr;
     }
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
@@ -698,8 +698,8 @@ public:
         
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        auto deviceExtensionProperties = this->m_infoProvider->getAvailableVulkanDeviceExtensions(m_physicalDevice);
-        auto missingExtensions = this->m_infoProvider->detectMissingRequiredDeviceExtensions(
+        auto deviceExtensionProperties = m_infoProvider->getAvailableVulkanDeviceExtensions(m_physicalDevice);
+        auto missingExtensions = m_infoProvider->detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
             logicalDeviceSpec.requiredExtensions()
         );
@@ -853,16 +853,16 @@ public:
     }
 
     void cleanup() {
-        if (this->m_instance == VK_NULL_HANDLE) {
+        if (m_instance == VK_NULL_HANDLE) {
             return;
         }
 
-        if (this->m_debugMessenger != VK_NULL_HANDLE) {
+        if (m_debugMessenger != VK_NULL_HANDLE) {
             VulkanDebugMessenger::DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
         }
 
-        this->m_debugMessenger = VK_NULL_HANDLE;
-        this->m_instance = VK_NULL_HANDLE;
+        m_debugMessenger = VK_NULL_HANDLE;
+        m_instance = VK_NULL_HANDLE;
     }
 private:
     VkInstance m_instance;
@@ -944,7 +944,7 @@ private:
             throw std::runtime_error("failed to create window surface!");
         }
 
-        this->m_surface = surface;
+        m_surface = surface;
     }
 };
 
@@ -952,15 +952,15 @@ class Engine final {
 public:
     explicit Engine() = default;
     ~Engine() {
-        vkDestroyDevice(this->m_device, nullptr);
+        vkDestroyDevice(m_device, nullptr);
         
-        delete this->m_debugMessenger;
+        delete m_debugMessenger;
         
         // We do not need to destroy `m_physicalDevice`.
-        vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
-        vkDestroyInstance(this->m_instance, nullptr);
+        vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+        vkDestroyInstance(m_instance, nullptr);
 
-        delete this->m_windowSystem;
+        delete m_windowSystem;
 
         glfwTerminate();
     }
@@ -1041,13 +1041,13 @@ public:
         auto instanceSpec = instanceSpecProvider.createInstanceSpec();
         auto instance = m_systemFactory->create(instanceSpec);
         
-        this->m_instance = instance;
+        m_instance = instance;
     }
 
     void createWindowSystem() {
         auto windowSystem = WindowSystem::create(m_instance);
 
-        this->m_windowSystem = windowSystem;
+        m_windowSystem = windowSystem;
     }
 
     void createDebugMessenger() {
@@ -1055,8 +1055,8 @@ public:
             return;
         }
 
-        auto debugMessenger = VulkanDebugMessenger::create(this->m_instance);
-        this->m_debugMessenger = debugMessenger;
+        auto debugMessenger = VulkanDebugMessenger::create(m_instance);
+        m_debugMessenger = debugMessenger;
     }
 
     void createWindow(uint32_t width, uint32_t height, const std::string& title) {
@@ -1073,7 +1073,7 @@ public:
             physicalDeviceSpec
         );
 
-        this->m_physicalDevice = selectedPhysicalDevice;
+        m_physicalDevice = selectedPhysicalDevice;
     }
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
@@ -1137,9 +1137,9 @@ public:
         auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
         auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
 
-        this->m_device = device;
-        this->m_graphicsQueue = graphicsQueue;
-        this->m_presentQueue = presentQueue;
+        m_device = device;
+        m_graphicsQueue = graphicsQueue;
+        m_presentQueue = presentQueue;
     }
 
     std::vector<char> loadShader(std::istream& stream) {
@@ -1174,7 +1174,7 @@ public:
             throw std::runtime_error("failed to create shader module!");
         }
 
-        this->m_shaderModules.insert(shaderModule);
+        m_shaderModules.insert(shaderModule);
 
         return shaderModule;
     }
@@ -1266,21 +1266,21 @@ private:
     bool m_enableDebuggingExtensions { false };
 
     void cleanup() {
-        if (this->m_engine->isInitialized()) {
+        if (m_engine->isInitialized()) {
             this->cleanupSwapChain();
 
-            vkDestroyPipeline(this->m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
-            vkDestroyPipelineLayout(this->m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
+            vkDestroyPipeline(m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
             
-            vkDestroyRenderPass(this->m_engine->getLogicalDevice(), m_renderPass, nullptr);
+            vkDestroyRenderPass(m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroySemaphore(this->m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
-                vkDestroySemaphore(this->m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
-                vkDestroyFence(this->m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
+                vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
             }
             
-            vkDestroyCommandPool(this->m_engine->getLogicalDevice(), m_commandPool, nullptr);
+            vkDestroyCommandPool(m_engine->getLogicalDevice(), m_commandPool, nullptr);
 
             delete m_engine;
         }
@@ -1289,7 +1289,7 @@ private:
     void createEngine() {
         auto engine = Engine::createDebugMode(WIDTH, HEIGHT, "Hello, Triangle!");
 
-        this->m_engine = engine;
+        m_engine = engine;
     }
 
     void initEngine() {
@@ -1306,12 +1306,12 @@ private:
     }
 
     void mainLoop() {
-        while (!glfwWindowShouldClose(this->m_engine->getWindow())) {
+        while (!glfwWindowShouldClose(m_engine->getWindow())) {
             glfwPollEvents();
             this->draw();
         }
 
-        vkDeviceWaitIdle(this->m_engine->getLogicalDevice());
+        vkDeviceWaitIdle(m_engine->getLogicalDevice());
     }
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -1363,7 +1363,7 @@ private:
     }
 
     void createSwapChain() {
-        SwapChainSupportDetails swapChainSupport = this->m_engine->querySwapChainSupport(this->m_engine->getPhysicalDevice(), this->m_engine->getSurface());
+        SwapChainSupportDetails swapChainSupport = m_engine->querySwapChainSupport(m_engine->getPhysicalDevice(), m_engine->getSurface());
         VkSurfaceFormatKHR surfaceFormat = this->selectSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = this->selectSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = this->selectSwapExtent(swapChainSupport.capabilities);
@@ -1375,7 +1375,7 @@ private:
 
         auto createInfo = VkSwapchainCreateInfoKHR {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = this->m_engine->getSurface();
+        createInfo.surface = m_engine->getSurface();
 
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
@@ -1384,7 +1384,7 @@ private:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = this->m_engine->findQueueFamilies(this->m_engine->getPhysicalDevice(), this->m_engine->getSurface());
+        QueueFamilyIndices indices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
         auto queueFamilyIndices = std::array<uint32_t, 2> { 
             indices.graphicsFamily.value(),
             indices.presentFamily.value()
@@ -1405,13 +1405,13 @@ private:
 
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(this->m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(this->m_engine->getLogicalDevice(), m_swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), m_swapChain, &imageCount, nullptr);
         m_swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(this->m_engine->getLogicalDevice(), m_swapChain, &imageCount, m_swapChainImages.data());
+        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), m_swapChain, &imageCount, m_swapChainImages.data());
 
         m_swapChainImageFormat = surfaceFormat.format;
         m_swapChainExtent = extent;
@@ -1436,7 +1436,7 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            auto result = vkCreateImageView(this->m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]);
+            auto result = vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create image views!");
             }
@@ -1470,17 +1470,17 @@ private:
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
 
-        auto result = vkCreateRenderPass(this->m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass);
+        auto result = vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderCode = this->m_engine->loadShaderFromFile("shaders/shader.vert.hlsl.spv");
-        auto fragmentShaderCode = this->m_engine->loadShaderFromFile("shaders/shader.frag.hlsl.spv");
-        auto vertexShaderModule = this->m_engine->createShaderModule(vertexShaderCode);
-        auto fragmentShaderModule = this->m_engine->createShaderModule(fragmentShaderCode);
+        auto vertexShaderCode = m_engine->loadShaderFromFile("shaders/shader.vert.hlsl.spv");
+        auto fragmentShaderCode = m_engine->loadShaderFromFile("shaders/shader.frag.hlsl.spv");
+        auto vertexShaderModule = m_engine->createShaderModule(vertexShaderCode);
+        auto fragmentShaderModule = m_engine->createShaderModule(fragmentShaderCode);
 
         auto vertexShaderStageInfo = VkPipelineShaderStageCreateInfo {};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1591,7 +1591,7 @@ private:
         pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        if (vkCreatePipelineLayout(this->m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -1614,7 +1614,7 @@ private:
         pipelineInfo.basePipelineIndex = -1;              // Optional
 
         auto result = vkCreateGraphicsPipelines(
-            this->m_engine->getLogicalDevice(), 
+            m_engine->getLogicalDevice(), 
             VK_NULL_HANDLE, 
             1, 
             &pipelineInfo, 
@@ -1626,8 +1626,8 @@ private:
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-        vkDestroyShaderModule(this->m_engine->getLogicalDevice(), fragmentShaderModule, nullptr);
-        vkDestroyShaderModule(this->m_engine->getLogicalDevice(), vertexShaderModule, nullptr);
+        vkDestroyShaderModule(m_engine->getLogicalDevice(), fragmentShaderModule, nullptr);
+        vkDestroyShaderModule(m_engine->getLogicalDevice(), vertexShaderModule, nullptr);
     }
 
     void createFramebuffers() {
@@ -1648,7 +1648,7 @@ private:
             framebufferInfo.layers = 1;
 
             auto result = vkCreateFramebuffer(
-                this->m_engine->getLogicalDevice(),
+                m_engine->getLogicalDevice(),
                 &framebufferInfo,
                 nullptr,
                 &m_swapChainFramebuffers[i]
@@ -1661,14 +1661,14 @@ private:
     }
 
     void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = this->m_engine->findQueueFamilies(this->m_engine->getPhysicalDevice(), this->m_engine->getSurface());
+        QueueFamilyIndices queueFamilyIndices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
 
         auto poolInfo = VkCommandPoolCreateInfo {};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        auto result = vkCreateCommandPool(this->m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_commandPool);
+        auto result = vkCreateCommandPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_commandPool);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
@@ -1683,7 +1683,7 @@ private:
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-        auto result = vkAllocateCommandBuffers(this->m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data());
+        auto result = vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data());
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
@@ -1751,17 +1751,17 @@ private:
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            auto result = vkCreateSemaphore(this->m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
+            auto result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create in-flight semaphore synchronization object");
             }
 
-            result = vkCreateSemaphore(this->m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
+            result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create render finished synchronization object");
             }
 
-            result = vkCreateFence(this->m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]);
+            result = vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create in-flight fence synchronization object");
             }
@@ -1769,11 +1769,11 @@ private:
     }
 
     void draw() {
-        vkWaitForFences(this->m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
         auto result = vkAcquireNextImageKHR(
-            this->m_engine->getLogicalDevice(), 
+            m_engine->getLogicalDevice(), 
             m_swapChain, 
             UINT64_MAX, 
             m_imageAvailableSemaphores[m_currentFrame], 
@@ -1788,7 +1788,7 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        vkResetFences(this->m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
+        vkResetFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
         vkResetCommandBuffer(m_commandBuffers[m_currentFrame], /* VkCommandBufferResetFlagBits */ 0);
         this->recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
@@ -1809,7 +1809,7 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
-        if (vkQueueSubmit(this->m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -1825,7 +1825,7 @@ private:
 
         presentInfo.pImageIndices = &imageIndex;
 
-        result = vkQueuePresentKHR(this->m_engine->getPresentQueue(), &presentInfo);
+        result = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
             m_engine->setFramebufferResized(false);
             this->recreateSwapChain();
@@ -1838,14 +1838,14 @@ private:
 
     void cleanupSwapChain() {
         for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++) {
-            vkDestroyFramebuffer(this->m_engine->getLogicalDevice(), m_swapChainFramebuffers[i], nullptr);
+            vkDestroyFramebuffer(m_engine->getLogicalDevice(), m_swapChainFramebuffers[i], nullptr);
         }
 
         for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
-            vkDestroyImageView(this->m_engine->getLogicalDevice(), m_swapChainImageViews[i], nullptr);
+            vkDestroyImageView(m_engine->getLogicalDevice(), m_swapChainImageViews[i], nullptr);
         }
 
-        vkDestroySwapchainKHR(this->m_engine->getLogicalDevice(), m_swapChain, nullptr);
+        vkDestroySwapchainKHR(m_engine->getLogicalDevice(), m_swapChain, nullptr);
     }
 
     void recreateSwapChain() {
@@ -1857,7 +1857,7 @@ private:
             glfwWaitEvents();
         }
 
-        vkDeviceWaitIdle(this->m_engine->getLogicalDevice());
+        vkDeviceWaitIdle(m_engine->getLogicalDevice());
 
         this->cleanupSwapChain();
         this->createSwapChain();
