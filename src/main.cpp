@@ -952,15 +952,19 @@ class Engine final {
 public:
     explicit Engine() = default;
     ~Engine() {
-        vkDestroyDevice(m_device, nullptr);
+        delete m_windowSystem;
         
-        delete m_debugMessenger;
+        vkDestroyDevice(m_device, nullptr);
         
         // We do not need to destroy `m_physicalDevice`.
         vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+
+        delete m_debugMessenger;
+
         vkDestroyInstance(m_instance, nullptr);
 
-        delete m_windowSystem;
+        delete m_systemFactory;
+        delete m_infoProvider;
 
         glfwTerminate();
     }
