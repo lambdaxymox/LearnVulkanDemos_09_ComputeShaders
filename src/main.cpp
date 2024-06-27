@@ -1220,61 +1220,18 @@ public:
     }
 
     std::vector<char> loadShader(std::istream& stream) {
-        /*
-        size_t shaderSize = static_cast<size_t>(stream.tellg());
-        auto buffer = std::vector<char>(shaderSize);
-
-        stream.seekg(0);
-        stream.read(buffer.data(), shaderSize);
-
-        return buffer;
-        */
         return m_shaderManager->loadShader(stream);
     }
 
     std::vector<char> loadShaderFromFile(const std::string& fileName) {
-        /*
-        auto stream = this->openShaderFile(fileName);
-        auto shader = this->loadShader(stream);
-        stream.close();
-
-        return shader;
-        */
         return m_shaderManager->loadShaderFromFile(fileName);
     }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
-        /*
-        auto createInfo = VkShaderModuleCreateInfo {};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-        createInfo.pNext = nullptr;
-        createInfo.flags = 0;
-
-        auto shaderModule = VkShaderModule {};
-        auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        m_shaderModules.insert(shaderModule);
-
-        return shaderModule;
-        */
         return m_shaderManager->createShaderModule(code);
     }
 
     std::ifstream openShaderFile(const std::string& fileName) {
-        /*
-        auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
-
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file!");
-        }
-
-        return file;
-        */
         return m_shaderManager->openShaderFile(fileName);
     }
 private:
