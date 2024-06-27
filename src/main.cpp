@@ -964,22 +964,16 @@ public:
         m_device = VK_NULL_HANDLE;
     }
 
-    std::vector<char> loadShader(std::istream& stream) {
-        size_t shaderSize = static_cast<size_t>(stream.tellg());
-        auto buffer = std::vector<char>(shaderSize);
+    VkShaderModule createShaderModuleFromFile(const std::string& fileName) {
+        auto shaderCode = this->loadShaderFromFile(fileName);
 
-        stream.seekg(0);
-        stream.read(buffer.data(), shaderSize);
-
-        return buffer;
+        return this->createShaderModule(shaderCode);
     }
 
-    std::vector<char> loadShaderFromFile(const std::string& fileName) {
-        auto stream = this->openShaderFile(fileName);
-        auto shader = this->loadShader(stream);
-        stream.close();
+    VkShaderModule createShaderModule(std::istream& stream) {
+        auto shaderCode = this->loadShader(stream);
 
-        return shader;
+        return this->createShaderModule(shaderCode);
     }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
@@ -1000,6 +994,19 @@ public:
 
         return shaderModule;
     }
+private:
+    VkDevice m_device;
+    std::unordered_set<VkShaderModule> m_shaderModules;
+
+    std::vector<char> loadShader(std::istream& stream) {
+        size_t shaderSize = static_cast<size_t>(stream.tellg());
+        auto buffer = std::vector<char>(shaderSize);
+
+        stream.seekg(0);
+        stream.read(buffer.data(), shaderSize);
+
+        return buffer;
+    }
 
     std::ifstream openShaderFile(const std::string& fileName) {
         auto file = std::ifstream { fileName, std::ios::ate | std::ios::binary };
@@ -1010,9 +1017,14 @@ public:
 
         return file;
     }
-private:
-    VkDevice m_device;
-    std::unordered_set<VkShaderModule> m_shaderModules;
+
+    std::vector<char> loadShaderFromFile(const std::string& fileName) {
+        auto stream = this->openShaderFile(fileName);
+        auto shader = this->loadShader(stream);
+        stream.close();
+
+        return shader;
+    }
 };
 
 class Engine final {
@@ -1127,6 +1139,7 @@ public:
         }
 
         auto debugMessenger = VulkanDebugMessenger::create(m_instance);
+
         m_debugMessenger = debugMessenger;
     }
 
@@ -1219,20 +1232,16 @@ public:
         m_shaderManager = shaderManager;
     }
 
-    std::vector<char> loadShader(std::istream& stream) {
-        return m_shaderManager->loadShader(stream);
+    VkShaderModule createShaderModuleFromFile(const std::string& fileName) {
+        return m_shaderManager->createShaderModuleFromFile(fileName);
     }
 
-    std::vector<char> loadShaderFromFile(const std::string& fileName) {
-        return m_shaderManager->loadShaderFromFile(fileName);
+    VkShaderModule createShaderModule(std::istream& stream) {
+        return m_shaderManager->createShaderModule(stream);
     }
 
-    VkShaderModule createShaderModule(const std::vector<char>& code) {
+    VkShaderModule createShaderModule(std::vector<char>& code) {
         return m_shaderManager->createShaderModule(code);
-    }
-
-    std::ifstream openShaderFile(const std::string& fileName) {
-        return m_shaderManager->openShaderFile(fileName);
     }
 private:
     PlatformInfoProvider* m_infoProvider;
@@ -1522,10 +1531,8 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderCode = m_engine->loadShaderFromFile("shaders/shader.vert.hlsl.spv");
-        auto fragmentShaderCode = m_engine->loadShaderFromFile("shaders/shader.frag.hlsl.spv");
-        auto vertexShaderModule = m_engine->createShaderModule(vertexShaderCode);
-        auto fragmentShaderModule = m_engine->createShaderModule(fragmentShaderCode);
+        auto vertexShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.vert.hlsl.spv");
+        auto fragmentShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.frag.hlsl.spv");
 
         auto vertexShaderStageInfo = VkPipelineShaderStageCreateInfo {};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
