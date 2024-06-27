@@ -197,13 +197,16 @@ private:
         return instanceCreateFlags;
     }
 
-    std::vector<std::string> getWindowSystemInstanceRequirements() const {
+    std::vector<std::string> getWindowSystemInstanceRequirements() const {        
+        glfwInit();
         uint32_t requiredExtensionCount = 0;
         const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
         auto requiredExtensions = std::vector<std::string> {};
         for (int i = 0; i < requiredExtensionCount; i++) {
             requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
         }
+
+        glfwTerminate();
 
         return requiredExtensions;
     }
@@ -869,6 +872,94 @@ private:
     VkDebugUtilsMessengerEXT m_debugMessenger;
 };
 
+class WindowSystem final {
+public:
+    explicit WindowSystem() = default;
+    explicit WindowSystem(VkInstance instance) : m_instance { instance } {}
+    ~WindowSystem() {
+        glfwDestroyWindow(m_window);
+        glfwTerminate();
+
+        m_instance = VK_NULL_HANDLE;
+        m_framebufferResized = false;
+    }
+
+    static WindowSystem* create(VkInstance instance) {
+        auto result = glfwInit();
+        if (!result) {
+            glfwTerminate();
+
+            auto errorMessage = std::string { "Failed to initialize GLFW" };
+            throw std::runtime_error { errorMessage };
+        }
+
+        return new WindowSystem { instance };
+    }
+
+    void createWindow(uint32_t width, uint32_t height, const std::string& title) {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+        auto window = glfwCreateWindow(width, height, title.data(), nullptr, nullptr);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
+        m_window = window;
+
+        this->createSurface();
+    }
+
+    GLFWwindow* getWindow() const {
+        return m_window;
+    }
+
+    VkSurfaceKHR getSurfaceHandle() const {
+        return m_surface;
+    }
+
+    bool hasFramebufferResized() const {
+        return m_framebufferResized;
+    }
+
+    void setFramebufferResized(bool framebufferResized) {
+        m_framebufferResized = framebufferResized;
+    }
+
+    void setWindowTitle(const std::string& title) {
+        glfwSetWindowTitle(m_window, title.data());
+    }
+private:
+    VkInstance m_instance;
+    GLFWwindow* m_window;
+    VkSurfaceKHR m_surface;
+    bool m_framebufferResized;
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto windowSystem = reinterpret_cast<WindowSystem*>(glfwGetWindowUserPointer(window));
+        windowSystem->m_framebufferResized = true;
+    }
+
+    void createWindowSystem() {
+        auto result = glfwInit();
+        if (!result) {
+            glfwTerminate();
+
+            auto errorMessage = std::string { "Failed to initialize GLFW" };
+
+            throw std::runtime_error { errorMessage };
+        }
+    }
+
+    void createSurface() {
+        auto surface = VkSurfaceKHR {};
+        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create window surface!");
+        }
+
+        this->m_surface = surface;
+    }
+};
+
 class Engine final {
 public:
     explicit Engine() = default;
@@ -881,8 +972,7 @@ public:
         vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
         vkDestroyInstance(this->m_instance, nullptr);
 
-        glfwDestroyWindow(m_window);
-        glfwTerminate();
+        delete this->m_windowSystem;
     }
 
     static Engine* createDebugMode() {
@@ -918,25 +1008,25 @@ public:
     }
 
     GLFWwindow* getWindow() const {
-        return m_window;
+        return m_windowSystem->getWindow();
     }
 
     bool hasFramebufferResized() const {
-        return m_framebufferResized;
+        return m_windowSystem->hasFramebufferResized();
     }
 
     void setFramebufferResized(bool framebufferResized) {
-        m_framebufferResized = framebufferResized;
+        m_windowSystem->setFramebufferResized(framebufferResized);
     }
 
     bool isInitialized() const {
-        return this->m_instance != VK_NULL_HANDLE;
+        return m_instance != VK_NULL_HANDLE;
     }
 
     void createInfoProvider() {
         auto infoProvider = new PlatformInfoProvider {};
 
-        this->m_infoProvider = infoProvider;
+        m_infoProvider = infoProvider;
     }
 
     void createSystemFactory() {
@@ -945,6 +1035,7 @@ public:
         m_systemFactory = systemFactory;
     }
 
+    /*
     void createWindowSystem() {
         auto result = glfwInit();
         if (!result) {
@@ -954,7 +1045,9 @@ public:
             throw std::runtime_error { errorMessage };
         }
     }
+    */
 
+    /*
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto engine = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
         engine->m_framebufferResized = true;
@@ -971,13 +1064,19 @@ public:
 
         this->createSurface();
     }
-
+    */
     void createInstance() {
         auto instanceSpecProvider = InstanceSpecProvider { m_enableValidationLayers, m_enableDebuggingExtensions };
         auto instanceSpec = instanceSpecProvider.createInstanceSpec();
         auto instance = m_systemFactory->create(instanceSpec);
         
         this->m_instance = instance;
+    }
+
+    void createWindowSystem() {
+        auto windowSystem = WindowSystem::create(m_instance);
+
+        this->m_windowSystem = windowSystem;
     }
 
     void createDebugMessenger() {
@@ -989,6 +1088,7 @@ public:
         this->m_debugMessenger = debugMessenger;
     }
 
+    /*
     void createSurface() {
         auto surface = VkSurfaceKHR {};
         auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
@@ -997,6 +1097,14 @@ public:
         }
 
         this->m_surface = surface;
+    }
+    */
+    void createWindow(uint32_t width, uint32_t height, const std::string& title) {
+        m_windowSystem->createWindow(width, height, title);
+    }
+
+    void createSurface() {
+        m_surface = m_windowSystem->getSurfaceHandle();
     }
 
     void selectPhysicalDevice() {
@@ -1134,8 +1242,11 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
 
+    /*
     GLFWwindow* m_window;
     bool m_framebufferResized;
+    */
+    WindowSystem* m_windowSystem;
 
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
@@ -1155,10 +1266,11 @@ private:
 
         newEngine->createInfoProvider();
         newEngine->createSystemFactory();
-        newEngine->createWindowSystem();
         newEngine->createInstance();
         newEngine->createDebugMessenger();
+        newEngine->createWindowSystem();
         newEngine->createWindow(WIDTH, HEIGHT, "Hello Triangle");
+        newEngine->createSurface();
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
 
