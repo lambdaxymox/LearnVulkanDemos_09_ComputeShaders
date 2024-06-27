@@ -997,20 +997,14 @@ public:
         this->m_surface = surface;
     }
 
-    VkPhysicalDevice selectPhysicalDeviceForSurface(VkSurfaceKHR surface, const PhysicalDeviceSpec& physicalDeviceSpec) {
-        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
-        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(
-            surface,
-            physicalDeviceSpec
-        );
-
-        return selectedPhysicalDevice;
-    }
-
     void selectPhysicalDevice() {
         auto physicalDeviceSpecProvider = PhysicalDeviceSpecProvider {};
         auto physicalDeviceSpec = physicalDeviceSpecProvider.createPhysicalDeviceSpec();
-        auto selectedPhysicalDevice = this->selectPhysicalDeviceForSurface(m_surface, physicalDeviceSpec);
+        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
+        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(
+            m_surface,
+            physicalDeviceSpec
+        );
 
         this->m_physicalDevice = selectedPhysicalDevice;
     }
