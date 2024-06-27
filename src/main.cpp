@@ -954,15 +954,15 @@ private:
     }
 };
 
-class ShaderManager final {
+class GpuDevice final {
 public:
-    explicit ShaderManager(VkDevice device)
+    explicit GpuDevice(VkDevice device)
         : m_device { device }
         , m_shaderModules { std::unordered_set<VkShaderModule> {} }
     {
     }
 
-    ~ShaderManager() {
+    ~GpuDevice() {
         for (const auto& shaderModule : m_shaderModules) {
             vkDestroyShaderModule(m_device, shaderModule, nullptr);
         }
@@ -1233,21 +1233,21 @@ public:
     }
 
     void createShaderManager() {
-        auto shaderManager = new ShaderManager { m_device };
+        auto shaderManager = new GpuDevice { m_device };
 
-        m_shaderManager = shaderManager;
+        m_gpuDevice = shaderManager;
     }
 
     VkShaderModule createShaderModuleFromFile(const std::string& fileName) {
-        return m_shaderManager->createShaderModuleFromFile(fileName);
+        return m_gpuDevice->createShaderModuleFromFile(fileName);
     }
 
     VkShaderModule createShaderModule(std::istream& stream) {
-        return m_shaderManager->createShaderModule(stream);
+        return m_gpuDevice->createShaderModule(stream);
     }
 
     VkShaderModule createShaderModule(std::vector<char>& code) {
-        return m_shaderManager->createShaderModule(code);
+        return m_gpuDevice->createShaderModule(code);
     }
 private:
     PlatformInfoProvider* m_infoProvider;
@@ -1260,7 +1260,7 @@ private:
     VkDevice m_device;
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
-    ShaderManager* m_shaderManager;
+    GpuDevice* m_gpuDevice;
 
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
@@ -1353,13 +1353,13 @@ private:
     void initEngine() {
         this->createEngine();
 
+        this->createCommandPool();
+        this->createCommandBuffers();
         this->createSwapChain();
         this->createImageViews();
         this->createRenderPass();
         this->createGraphicsPipeline();
         this->createFramebuffers();
-        this->createCommandPool();
-        this->createCommandBuffers();
         this->createSyncObjects();
     }
 
