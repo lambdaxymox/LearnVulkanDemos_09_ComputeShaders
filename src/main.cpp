@@ -198,15 +198,12 @@ private:
     }
 
     std::vector<std::string> getWindowSystemInstanceRequirements() const {        
-        glfwInit();
         uint32_t requiredExtensionCount = 0;
         const char** requiredExtensionNames = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
         auto requiredExtensions = std::vector<std::string> {};
         for (int i = 0; i < requiredExtensionCount; i++) {
             requiredExtensions.emplace_back(std::string(requiredExtensionNames[i]));
         }
-
-        glfwTerminate();
 
         return requiredExtensions;
     }
@@ -878,21 +875,12 @@ public:
     explicit WindowSystem(VkInstance instance) : m_instance { instance } {}
     ~WindowSystem() {
         glfwDestroyWindow(m_window);
-        glfwTerminate();
 
         m_instance = VK_NULL_HANDLE;
         m_framebufferResized = false;
     }
 
     static WindowSystem* create(VkInstance instance) {
-        auto result = glfwInit();
-        if (!result) {
-            glfwTerminate();
-
-            auto errorMessage = std::string { "Failed to initialize GLFW" };
-            throw std::runtime_error { errorMessage };
-        }
-
         return new WindowSystem { instance };
     }
 
@@ -973,6 +961,8 @@ public:
         vkDestroyInstance(this->m_instance, nullptr);
 
         delete this->m_windowSystem;
+
+        glfwTerminate();
     }
 
     static Engine* createDebugMode() {
@@ -1021,6 +1011,17 @@ public:
 
     bool isInitialized() const {
         return m_instance != VK_NULL_HANDLE;
+    }
+
+    void createGLFWLibrary() {
+        auto result = glfwInit();
+        if (!result) {
+            glfwTerminate();
+
+            auto errorMessage = std::string { "Failed to initialize GLFW" };
+
+            throw std::runtime_error { errorMessage };
+        }
     }
 
     void createInfoProvider() {
@@ -1219,6 +1220,7 @@ private:
             newEngine->m_enableDebuggingExtensions = false;
         }
 
+        newEngine->createGLFWLibrary();
         newEngine->createInfoProvider();
         newEngine->createSystemFactory();
         newEngine->createInstance();
