@@ -1197,13 +1197,12 @@ private:
     SystemFactory* m_systemFactory;
     VkInstance m_instance;
     VulkanDebugMessenger* m_debugMessenger;
+    WindowSystem* m_windowSystem;
     VkSurfaceKHR m_surface;
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
-
-    WindowSystem* m_windowSystem;
 
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
