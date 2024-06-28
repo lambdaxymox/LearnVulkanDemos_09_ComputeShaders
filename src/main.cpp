@@ -1435,9 +1435,6 @@ public:
 private:
     Engine* m_engine;
 
-    /*
-    VkCommandPool m_commandPool;
-    */
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     VkRenderPass m_renderPass;
@@ -1474,10 +1471,6 @@ private:
                 vkDestroySemaphore(m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
                 vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
             }
-            
-            /*
-            vkDestroyCommandPool(m_engine->getLogicalDevice(), m_commandPool, nullptr);
-            */
 
             delete m_engine;
         }
@@ -1493,9 +1486,6 @@ private:
     void initEngine() {
         this->createEngine();
 
-        /*
-        this->createCommandPool();
-        */
         this->createCommandBuffers();
         this->createSwapChain();
         this->createImageViews();
@@ -1513,22 +1503,6 @@ private:
 
         vkDeviceWaitIdle(m_engine->getLogicalDevice());
     }
-
-    /*
-    void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
-
-        auto poolInfo = VkCommandPoolCreateInfo {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-        auto result = vkCreateCommandPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_commandPool);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create command pool!");
-        }
-    }
-    */
 
     void createCommandBuffers() {
         m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
