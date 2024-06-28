@@ -530,6 +530,58 @@ private:
     PlatformInfoProvider* m_infoProvider;
 };
 
+class SpecSurface final {
+public:
+    explicit SpecSurface() = default;
+    explicit SpecSurface(VkInstance instance, VkSurfaceKHR dummySurface)
+        : m_instance { instance }
+        , m_dummySurface { dummySurface } 
+    {
+    }
+
+    ~SpecSurface() {
+        vkDestroySurfaceKHR(m_instance, m_dummySurface, nullptr);
+        m_instance = VK_NULL_HANDLE;
+    }
+
+    VkSurfaceKHR getDummySurface() const {
+        return m_dummySurface;
+    }
+private:
+    VkInstance m_instance;
+    VkSurfaceKHR m_dummySurface;
+};
+
+class SpecSurfaceProvider final {
+public:
+    SpecSurfaceProvider() = delete;
+    SpecSurfaceProvider(VkInstance instance) : m_instance { instance } {}
+    ~SpecSurfaceProvider() {
+        m_instance = VK_NULL_HANDLE;
+    }
+
+    SpecSurface createSpecSurface() {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+        auto dummyWindow = glfwCreateWindow(1, 1, "DUMMY WINDOW", nullptr, nullptr);
+        auto dummySurface = VkSurfaceKHR {};
+        auto result = glfwCreateWindowSurface(m_instance, dummyWindow, nullptr, &dummySurface);
+        if (result != VK_SUCCESS) {
+            glfwDestroyWindow(dummyWindow);
+            dummyWindow = nullptr;
+
+            throw std::runtime_error("failed to create window surface!");
+        }
+
+        glfwDestroyWindow(dummyWindow);
+        dummyWindow = nullptr;
+
+        return SpecSurface { m_instance, dummySurface };
+    }
+private:
+    VkInstance m_instance;
+};
 
 class LogicalDeviceSpec final {
 public:
@@ -874,10 +926,13 @@ public:
     explicit WindowSystem() = default;
     explicit WindowSystem(VkInstance instance) : m_instance { instance } {}
     ~WindowSystem() {
+        m_framebufferResized = false;
+        m_windowExtent = VkExtent2D { 0, 0 };
+        m_surface = VK_NULL_HANDLE;
+
         glfwDestroyWindow(m_window);
 
         m_instance = VK_NULL_HANDLE;
-        m_framebufferResized = false;
     }
 
     static WindowSystem* create(VkInstance instance) {
@@ -886,6 +941,7 @@ public:
 
     void createWindow(uint32_t width, uint32_t height, const std::string& title) {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
         auto window = glfwCreateWindow(width, height, title.data(), nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
@@ -932,6 +988,7 @@ private:
         };
     }
 
+    /*
     void createWindowSystem() {
         auto result = glfwInit();
         if (!result) {
@@ -942,6 +999,7 @@ private:
             throw std::runtime_error { errorMessage };
         }
     }
+    */
 
     void createSurface() {
         auto surface = VkSurfaceKHR {};
@@ -1151,15 +1209,24 @@ public:
 
     void createWindow(uint32_t width, uint32_t height, const std::string& title) {
         m_windowSystem->createWindow(width, height, title);
-        m_surface = m_windowSystem->getSurfaceHandle();
+       
+        this->createSurface();
+    }
+
+    void createSurface() {
+        auto surface = m_windowSystem->getSurfaceHandle();
+
+        m_surface = surface;
     }
 
     void selectPhysicalDevice() {
         auto physicalDeviceSpecProvider = PhysicalDeviceSpecProvider {};
         auto physicalDeviceSpec = physicalDeviceSpecProvider.createPhysicalDeviceSpec();
         auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
+        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
+        auto specSurface = specSurfaceProvider.createSpecSurface();
         auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(
-            m_surface,
+            specSurface.getDummySurface(),
             physicalDeviceSpec
         );
 
@@ -1222,9 +1289,11 @@ public:
     }
 
     void createLogicalDevice() {
-        auto factory = LogicalDeviceFactory { m_physicalDevice, m_surface, m_infoProvider };
-        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, m_surface };
+        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
+        auto specSurface = specSurfaceProvider.createSpecSurface();
+        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, specSurface.getDummySurface() };
         auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
+        auto factory = LogicalDeviceFactory { m_physicalDevice, specSurface.getDummySurface(), m_infoProvider };
         auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
 
         m_device = device;
@@ -1232,10 +1301,10 @@ public:
         m_presentQueue = presentQueue;
     }
 
-    void createShaderManager() {
-        auto shaderManager = new GpuDevice { m_device };
+    void createGpuDevice() {
+        auto gpuDevice = new GpuDevice { m_device };
 
-        m_gpuDevice = shaderManager;
+        m_gpuDevice = gpuDevice;
     }
 
     VkShaderModule createShaderModuleFromFile(const std::string& fileName) {
@@ -1281,11 +1350,13 @@ private:
         newEngine->createSystemFactory();
         newEngine->createInstance();
         newEngine->createDebugMessenger();
-        newEngine->createWindowSystem();
-        newEngine->createWindow(width, height, title);
+
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
-        newEngine->createShaderManager();
+        newEngine->createGpuDevice();
+
+        newEngine->createWindowSystem();
+        newEngine->createWindow(width, height, title);
 
         return newEngine;
     }
