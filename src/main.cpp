@@ -988,19 +988,6 @@ private:
         };
     }
 
-    /*
-    void createWindowSystem() {
-        auto result = glfwInit();
-        if (!result) {
-            glfwTerminate();
-
-            auto errorMessage = std::string { "Failed to initialize GLFW" };
-
-            throw std::runtime_error { errorMessage };
-        }
-    }
-    */
-
     void createSurface() {
         auto surface = VkSurfaceKHR {};
         auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
@@ -1356,9 +1343,6 @@ private:
         newEngine->createGpuDevice();
 
         newEngine->createWindowSystem();
-        /*
-        newEngine->createWindow(width, height, title);
-        */
 
         return newEngine;
     }
