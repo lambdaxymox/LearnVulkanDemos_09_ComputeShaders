@@ -1112,12 +1112,12 @@ public:
         glfwTerminate();
     }
 
-    static Engine* createDebugMode(uint32_t width, uint32_t height, const std::string& title) {
-        return Engine::create(true, width, height, title);
+    static Engine* createDebugMode() {
+        return Engine::create(true);
     }
 
-    static Engine* createReleaseMode(uint32_t width, uint32_t height, const std::string& title) {
-        return Engine::create(false, width, height, title);
+    static Engine* createReleaseMode() {
+        return Engine::create(false);
     }
 
     VkInstance getInstance() const {
@@ -1334,7 +1334,7 @@ private:
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
 
-    static Engine* create(bool enableDebugging, uint32_t width, uint32_t height, const std::string& title) {
+    static Engine* create(bool enableDebugging) {
         auto newEngine = new Engine {};
 
         if (enableDebugging) {
@@ -1356,7 +1356,9 @@ private:
         newEngine->createGpuDevice();
 
         newEngine->createWindowSystem();
+        /*
         newEngine->createWindow(width, height, title);
+        */
 
         return newEngine;
     }
@@ -1416,7 +1418,8 @@ private:
     }
 
     void createEngine() {
-        auto engine = Engine::createDebugMode(WIDTH, HEIGHT, "Hello, Triangle!");
+        auto engine = Engine::createDebugMode();
+        engine->createWindow(WIDTH, HEIGHT, "Hello, Triangle!");
 
         m_engine = engine;
     }
