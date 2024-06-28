@@ -1001,8 +1001,11 @@ private:
 
 class GpuDevice final {
 public:
-    explicit GpuDevice(VkDevice device)
-        : m_device { device }
+    explicit GpuDevice() = delete;
+    explicit GpuDevice(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool)
+        : m_physicalDevice { physicalDevice }
+        , m_device { device }
+        , m_commandPool { commandPool }
         , m_shaderModules { std::unordered_set<VkShaderModule> {} }
     {
     }
@@ -1012,6 +1015,7 @@ public:
             vkDestroyShaderModule(m_device, shaderModule, nullptr);
         }
 
+        m_physicalDevice = VK_NULL_HANDLE;
         m_device = VK_NULL_HANDLE;
     }
 
@@ -1046,7 +1050,9 @@ public:
         return shaderModule;
     }
 private:
+    VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
+    VkCommandPool m_commandPool;
     std::unordered_set<VkShaderModule> m_shaderModules;
 
     std::vector<char> loadShader(std::istream& stream) {
@@ -1077,6 +1083,51 @@ private:
         return shader;
     }
 };
+/*
+class GpuDeviceFactory final {
+public:
+    explicit GpuDeviceFactory(VkInstance instance)
+        : m_instance { instance }
+    {
+        m_infoProvider = new PlatformInfoProvider {};
+    }
+    ~GpuDeviceFactory() {
+        m_instance = VK_NULL_HANDLE;
+    }
+
+    GpuDevice* create() {
+        auto physicalDevice = this->selectPhysicalDevice();
+        auto [logicalDevice, graphicsQueue, presentQueue] = this->createLogicalDevice(physicalDevice);
+    }
+private:
+    VkInstance m_instance;
+    PlatformInfoProvider* m_infoProvider;
+
+    VkPhysicalDevice selectPhysicalDevice() {
+        auto physicalDeviceSpecProvider = PhysicalDeviceSpecProvider {};
+        auto physicalDeviceSpec = physicalDeviceSpecProvider.createPhysicalDeviceSpec();
+        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
+        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
+        auto specSurface = specSurfaceProvider.createSpecSurface();
+        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(
+            specSurface.getDummySurface(),
+            physicalDeviceSpec
+        );
+
+        return selectedPhysicalDevice;
+    }
+
+    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice(VkPhysicalDevice physicalDevice) {
+        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
+        auto specSurface = specSurfaceProvider.createSpecSurface();
+        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { physicalDevice, specSurface.getDummySurface() };
+        auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
+        auto factory = LogicalDeviceFactory { physicalDevice, specSurface.getDummySurface(), m_infoProvider };
+        
+        return factory.createLogicalDevice(logicalDeviceSpec);
+    }
+};
+*/
 
 class Engine final {
 public:
@@ -1084,6 +1135,7 @@ public:
     ~Engine() {
         delete m_windowSystem;
         
+        vkDestroyCommandPool(m_device, m_commandPool, nullptr);
         vkDestroyDevice(m_device, nullptr);
         
         // We do not need to destroy `m_physicalDevice`.
@@ -1125,6 +1177,10 @@ public:
 
     VkQueue getPresentQueue() const {
         return m_presentQueue;
+    }
+
+    VkCommandPool getCommandPool() const {
+        return m_commandPool;
     }
 
     VkSurfaceKHR getSurface() const {
@@ -1220,6 +1276,44 @@ public:
         m_physicalDevice = selectedPhysicalDevice;
     }
 
+    void createLogicalDevice() {
+        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
+        auto specSurface = specSurfaceProvider.createSpecSurface();
+        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, specSurface.getDummySurface() };
+        auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
+        auto factory = LogicalDeviceFactory { m_physicalDevice, specSurface.getDummySurface(), m_infoProvider };
+        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
+
+        m_device = device;
+        m_graphicsQueue = graphicsQueue;
+        m_presentQueue = presentQueue;
+    }
+
+    void createCommandPool() {
+        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
+        auto specSurface = specSurfaceProvider.createSpecSurface();
+        QueueFamilyIndices queueFamilyIndices = this->findQueueFamilies(m_physicalDevice, specSurface.getDummySurface());
+
+        auto poolInfo = VkCommandPoolCreateInfo {};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        VkCommandPool commandPool = VK_NULL_HANDLE;
+        auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create command pool!");
+        }
+
+        m_commandPool = commandPool;
+    }
+
+    void createGpuDevice() {
+        auto gpuDevice = new GpuDevice { m_physicalDevice, m_device, m_commandPool };
+
+        m_gpuDevice = gpuDevice;
+    }
+
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) const {
         auto indices = QueueFamilyIndices {};
 
@@ -1275,25 +1369,6 @@ public:
         return details;
     }
 
-    void createLogicalDevice() {
-        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
-        auto specSurface = specSurfaceProvider.createSpecSurface();
-        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, specSurface.getDummySurface() };
-        auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
-        auto factory = LogicalDeviceFactory { m_physicalDevice, specSurface.getDummySurface(), m_infoProvider };
-        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
-
-        m_device = device;
-        m_graphicsQueue = graphicsQueue;
-        m_presentQueue = presentQueue;
-    }
-
-    void createGpuDevice() {
-        auto gpuDevice = new GpuDevice { m_device };
-
-        m_gpuDevice = gpuDevice;
-    }
-
     VkShaderModule createShaderModuleFromFile(const std::string& fileName) {
         return m_gpuDevice->createShaderModuleFromFile(fileName);
     }
@@ -1316,6 +1391,7 @@ private:
     VkDevice m_device;
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
+    VkCommandPool m_commandPool;
     GpuDevice* m_gpuDevice;
 
     bool m_enableValidationLayers; 
@@ -1340,6 +1416,7 @@ private:
 
         newEngine->selectPhysicalDevice();
         newEngine->createLogicalDevice();
+        newEngine->createCommandPool();
         newEngine->createGpuDevice();
 
         newEngine->createWindowSystem();
@@ -1358,7 +1435,9 @@ public:
 private:
     Engine* m_engine;
 
+    /*
     VkCommandPool m_commandPool;
+    */
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     VkRenderPass m_renderPass;
@@ -1396,7 +1475,9 @@ private:
                 vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
             }
             
+            /*
             vkDestroyCommandPool(m_engine->getLogicalDevice(), m_commandPool, nullptr);
+            */
 
             delete m_engine;
         }
@@ -1412,7 +1493,9 @@ private:
     void initEngine() {
         this->createEngine();
 
+        /*
         this->createCommandPool();
+        */
         this->createCommandBuffers();
         this->createSwapChain();
         this->createImageViews();
@@ -1431,6 +1514,7 @@ private:
         vkDeviceWaitIdle(m_engine->getLogicalDevice());
     }
 
+    /*
     void createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
 
@@ -1444,13 +1528,14 @@ private:
             throw std::runtime_error("failed to create command pool!");
         }
     }
+    */
 
     void createCommandBuffers() {
         m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         auto allocInfo = VkCommandBufferAllocateInfo {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_commandPool;
+        allocInfo.commandPool = m_engine->getCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
