@@ -81,17 +81,22 @@ struct Vertex {
 };
 
 const std::vector<Vertex> vertices = std::vector<Vertex> {
-    Vertex { {  0.0f, -0.5f}, { 1.0f, 0.0f, 0.0f } },
-    Vertex { {  0.5f,  0.5f}, { 0.0f, 1.0f, 0.0f } },
-    Vertex { { -0.5f,  0.5f}, { 0.0f, 0.0f, 1.0f } }
+    Vertex { { -0.5f, -0.5f}, { 1.0f, 0.0f, 0.0f } },
+    Vertex { {  0.5f, -0.5f}, { 0.0f, 1.0f, 0.0f } },
+    Vertex { {  0.5f,  0.5f}, { 0.0f, 0.0f, 1.0f } },
+    Vertex { { -0.5f,  0.5f}, { 1.0f, 1.0f, 1.0f } }
 };
 
+const std::vector<uint16_t> indices = std::vector<uint16_t> {
+    0, 1, 2, 2, 3, 0
+};
 
 
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
 using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
 using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
+
 
 struct QueueFamilyIndices final {
     std::optional<uint32_t> graphicsFamily;
@@ -1528,6 +1533,8 @@ private:
 
     VkBuffer m_vertexBuffer;
     VkDeviceMemory m_vertexBufferMemory;
+    VkBuffer m_indexBuffer;
+    VkDeviceMemory m_indexBufferMemory;
 
     std::vector<VkCommandBuffer> m_commandBuffers;
 
@@ -1559,6 +1566,9 @@ private:
             vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
             vkDestroyRenderPass(m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
+            vkDestroyBuffer(m_engine->getLogicalDevice(), m_indexBuffer, nullptr);
+            vkFreeMemory(m_engine->getLogicalDevice(), m_indexBufferMemory, nullptr);
+
             vkDestroyBuffer(m_engine->getLogicalDevice(), m_vertexBuffer, nullptr);
             vkFreeMemory(m_engine->getLogicalDevice(), m_vertexBufferMemory, nullptr);
 
@@ -1583,6 +1593,7 @@ private:
         this->createEngine();
 
         this->createVertexBuffer();
+        this->createIndexBuffer();
         this->createCommandBuffers();
         this->createSwapChain();
         this->createImageViews();
@@ -1678,8 +1689,8 @@ private:
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+        auto stagingBuffer = VkBuffer {};
+        auto stagingBufferMemory = VkDeviceMemory {};
         VkBufferUsageFlags stagingBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         VkMemoryPropertyFlags stagingBufferPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | 
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -1692,11 +1703,40 @@ private:
         
         vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
 
-        VkBufferUsageFlags vertexBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        VkBufferUsageFlags vertexBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         VkMemoryPropertyFlags vertexBufferPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
         this->createBuffer(bufferSize, vertexBufferUsageFlags, vertexBufferPropertyFlags, m_vertexBuffer, m_vertexBufferMemory);
 
         this->copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
+
+        vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
+        vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
+    }
+
+    void createIndexBuffer() {
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+        auto stagingBuffer = VkBuffer {};
+        auto stagingBufferMemory = VkDeviceMemory {};
+        VkBufferUsageFlags stagingBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        VkMemoryPropertyFlags stagingBufferPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | 
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        this->createBuffer(bufferSize, stagingBufferUsageFlags, stagingBufferPropertyFlags, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(m_engine->getLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+        
+        memcpy(data, indices.data(), (size_t) bufferSize);
+        
+        vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
+
+        VkBufferUsageFlags vertexBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        VkMemoryPropertyFlags vertexBufferPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        this->createBuffer(bufferSize, vertexBufferUsageFlags, vertexBufferPropertyFlags, m_indexBuffer, m_indexBufferMemory);
+
+        this->copyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
 
         vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
         vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
@@ -2095,7 +2135,7 @@ private:
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-        
+
         auto viewport = VkViewport {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -2114,7 +2154,9 @@ private:
         auto offsets = std::array<VkDeviceSize, 1> { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
 
-        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
 
