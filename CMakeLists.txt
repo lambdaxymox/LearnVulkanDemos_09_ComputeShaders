@@ -94,7 +94,7 @@ target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE glfw)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE glm)
 target_link_libraries(LearnVulkanDemos_01_HelloTriangle PRIVATE fmt)
 add_dependencies(LearnVulkanDemos_01_HelloTriangle GLSL_Shaders)
-# add_dependencies(LearnVulkanDemos_01_HelloTriangle HLSL_Shaders)
+add_dependencies(LearnVulkanDemos_01_HelloTriangle HLSL_Shaders)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 find_program(DX_SHADER_COMPILER dxc HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
