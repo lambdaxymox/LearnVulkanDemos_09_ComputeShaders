@@ -530,61 +530,6 @@ private:
     PlatformInfoProvider* m_infoProvider;
 };
 
-/*
-class SpecSurface final {
-public:
-    explicit SpecSurface() = default;
-    explicit SpecSurface(VkInstance instance, VkSurfaceKHR dummySurface)
-        : m_instance { instance }
-        , m_dummySurface { dummySurface } 
-    {
-    }
-
-    ~SpecSurface() {
-        vkDestroySurfaceKHR(m_instance, m_dummySurface, nullptr);
-        m_instance = VK_NULL_HANDLE;
-    }
-
-    VkSurfaceKHR getDummySurface() const {
-        return m_dummySurface;
-    }
-private:
-    VkInstance m_instance;
-    VkSurfaceKHR m_dummySurface;
-};
-
-class SpecSurfaceProvider final {
-public:
-    SpecSurfaceProvider() = delete;
-    SpecSurfaceProvider(VkInstance instance) : m_instance { instance } {}
-    ~SpecSurfaceProvider() {
-        m_instance = VK_NULL_HANDLE;
-    }
-
-    SpecSurface createSpecSurface() {
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-        auto dummyWindow = glfwCreateWindow(1, 1, "DUMMY WINDOW", nullptr, nullptr);
-        auto dummySurface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, dummyWindow, nullptr, &dummySurface);
-        if (result != VK_SUCCESS) {
-            glfwDestroyWindow(dummyWindow);
-            dummyWindow = nullptr;
-
-            throw std::runtime_error("failed to create window surface!");
-        }
-
-        glfwDestroyWindow(dummyWindow);
-        dummyWindow = nullptr;
-
-        return SpecSurface { m_instance, dummySurface };
-    }
-private:
-    VkInstance m_instance;
-};
-*/
-
 class LogicalDeviceSpec final {
 public:
     explicit LogicalDeviceSpec() = default;
@@ -979,21 +924,12 @@ public:
 
         m_window = window;
         m_windowExtent = VkExtent2D { width, height };
-
-        /*
-        this->createSurface();
-        */
     }
 
     GLFWwindow* getWindow() const {
         return m_window;
     }
 
-    /*
-    VkSurfaceKHR getSurfaceHandle() const {
-        return m_surface;
-    }
-    */
     SurfaceProvider createSurfaceProvider() {
         return SurfaceProvider { m_instance, m_window};
     }
@@ -1024,18 +960,6 @@ private:
             static_cast<uint32_t>(height)
         };
     }
-
-    /*
-    void createSurface() {
-        auto surface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface!");
-        }
-
-        m_surface = surface;
-    }
-    */
 };
 
 class GpuDevice final {
@@ -1306,18 +1230,7 @@ public:
     explicit Engine() = default;
     ~Engine() {
         delete m_windowSystem;
-        
-        /*
-        vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-        vkDestroyDevice(m_device, nullptr);
-        */
         delete m_gpuDevice;
-        
-        // We do not need to destroy `m_physicalDevice`.
-        /*
-        vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-        */
-
         delete m_debugMessenger;
 
         vkDestroyInstance(m_instance, nullptr);
@@ -1433,59 +1346,6 @@ public:
         this->createRenderSurface();
     }
 
-    /*
-    void selectPhysicalDevice() {
-        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
-        auto specSurface = specSurfaceProvider.createSpecSurface();
-        auto physicalDeviceSpecProvider = PhysicalDeviceSpecProvider {};
-        auto physicalDeviceSpec = physicalDeviceSpecProvider.createPhysicalDeviceSpec();
-        auto physicalDeviceSelector = PhysicalDeviceSelector { m_instance, m_infoProvider };
-        auto selectedPhysicalDevice = physicalDeviceSelector.selectPhysicalDeviceForSurface(
-            specSurface.getDummySurface(),
-            physicalDeviceSpec
-        );
-
-        m_physicalDevice = selectedPhysicalDevice;
-    }
-
-    void createLogicalDevice() {
-        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
-        auto specSurface = specSurfaceProvider.createSpecSurface();
-        auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, specSurface.getDummySurface() };
-        auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
-        auto factory = LogicalDeviceFactory { m_physicalDevice, specSurface.getDummySurface(), m_infoProvider };
-        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
-
-        m_device = device;
-        m_graphicsQueue = graphicsQueue;
-        m_presentQueue = presentQueue;
-    }
-
-    void createCommandPool() {
-        auto specSurfaceProvider = SpecSurfaceProvider { m_instance };
-        auto specSurface = specSurfaceProvider.createSpecSurface();
-        QueueFamilyIndices queueFamilyIndices = this->findQueueFamilies(m_physicalDevice, specSurface.getDummySurface());
-
-        auto poolInfo = VkCommandPoolCreateInfo {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create command pool!");
-        }
-
-        m_commandPool = commandPool;
-    }
-
-    void createGpuDevice() {
-        auto gpuDevice = new GpuDevice { m_physicalDevice, m_device, m_commandPool };
-
-        m_gpuDevice = gpuDevice;
-    }
-    */
     void createGpuDevice() {
         auto gpuDeviceInitializer = GpuDeviceInitializer { m_instance };
         auto gpuDevice = gpuDeviceInitializer.createGpuDevice();
@@ -1573,13 +1433,7 @@ private:
     VulkanDebugMessenger* m_debugMessenger;
     WindowSystem* m_windowSystem;
     VkSurfaceKHR m_surface;
-    /*
-    VkPhysicalDevice m_physicalDevice;
-    VkDevice m_device;
-    VkQueue m_graphicsQueue;
-    VkQueue m_presentQueue;
-    VkCommandPool m_commandPool;
-    */
+
     GpuDevice* m_gpuDevice;
 
     bool m_enableValidationLayers; 
@@ -1601,11 +1455,6 @@ private:
         newEngine->createSystemFactory();
         newEngine->createInstance();
         newEngine->createDebugMessenger();
-        /*
-        newEngine->selectPhysicalDevice();
-        newEngine->createLogicalDevice();
-        newEngine->createCommandPool();
-        */
         newEngine->createGpuDevice();
 
         newEngine->createWindowSystem();
