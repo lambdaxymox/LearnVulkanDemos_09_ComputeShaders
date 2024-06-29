@@ -100,6 +100,22 @@ const std::vector<uint16_t> indices = std::vector<uint16_t> {
     0, 1, 2, 2, 3, 0
 };
 
+/// @brief The uniform buffer object for distpaching camera data to the GPU.
+///
+/// @note Vulkan expects data to be aligned in a specific way. For example,
+/// let `T` be a data type.
+///
+/// @li If `T` is a scalar, `align(T) == sizeof(T)`
+/// @li If `T` is a scalar, `align(vec2<T>) == 2 * sizeof(T)`
+/// @li If `T` is a scalar, `align(vec3<T>) == 4 * sizeof(T)`
+/// @li If `T` is a scalar, `align(vec4<T>) == 4 * sizeof(T)`
+/// @li If `T` is a scalar, `align(mat4<T>) == 4 * sizeof(T)`
+/// @li If `T` is a structure type, `align(T) == max(align(members(T)))`
+///
+/// In particular, each data type is a nice multiple of the alignment of the largest
+/// scalar type constituting that data type. See the specification
+/// https://registry.khronos.org/vulkan/specs/1.3-extensions/html/chap15.html#interfaces-resources-layout
+/// for more details.
 struct UniformBufferObject {
     glm::mat4x4 model;
     glm::mat4x4 view;
