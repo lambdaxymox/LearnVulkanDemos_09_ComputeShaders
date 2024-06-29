@@ -26,6 +26,15 @@
 #include <GLFW/glfw3.h>
 #endif // GLFW_INCLUDE_VULKAN
 
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <chrono>
+
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
@@ -89,6 +98,12 @@ const std::vector<Vertex> vertices = std::vector<Vertex> {
 
 const std::vector<uint16_t> indices = std::vector<uint16_t> {
     0, 1, 2, 2, 3, 0
+};
+
+struct UniformBufferObject {
+    glm::mat4x4 model;
+    glm::mat4x4 view;
+    glm::mat4x4 proj;
 };
 
 
@@ -1536,6 +1551,14 @@ private:
     VkBuffer m_indexBuffer;
     VkDeviceMemory m_indexBufferMemory;
 
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    std::vector<void*> m_uniformBuffersMapped;
+
+    VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    VkDescriptorSetLayout m_descriptorSetLayout;
+
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     VkRenderPass m_renderPass;
@@ -1566,6 +1589,15 @@ private:
             vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
             vkDestroyRenderPass(m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
+                vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
+            }
+
+            vkDestroyDescriptorPool(m_engine->getLogicalDevice(), m_descriptorPool, nullptr);
+            vkDestroyDescriptorSetLayout(m_engine->getLogicalDevice(), m_descriptorSetLayout, nullptr);
+
             vkDestroyBuffer(m_engine->getLogicalDevice(), m_indexBuffer, nullptr);
             vkFreeMemory(m_engine->getLogicalDevice(), m_indexBufferMemory, nullptr);
 
@@ -1573,9 +1605,8 @@ private:
             vkFreeMemory(m_engine->getLogicalDevice(), m_vertexBufferMemory, nullptr);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroySemaphore(m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
-                vkDestroySemaphore(m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
-                vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
+                vkDestroyBuffer(m_engine->getLogicalDevice(), m_uniformBuffers[i], nullptr);
+                vkFreeMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], nullptr);
             }
 
             delete m_engine;
@@ -1594,6 +1625,10 @@ private:
 
         this->createVertexBuffer();
         this->createIndexBuffer();
+        this->createDescriptorSetLayout();
+        this->createUniformBuffers();
+        this->createDescriptorPool();
+        this->createDescriptorSets();
         this->createCommandBuffers();
         this->createSwapChain();
         this->createImageViews();
@@ -1740,6 +1775,100 @@ private:
 
         vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
         vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
+    }
+
+    void createDescriptorSetLayout() {
+        auto uboLayoutBinding = VkDescriptorSetLayoutBinding {};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        auto layoutInfo = VkDescriptorSetLayoutCreateInfo {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        auto descriptorSetLayout = VkDescriptorSetLayout {};
+        auto result = vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &descriptorSetLayout);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        m_descriptorSetLayout = descriptorSetLayout;
+    }
+
+    void createUniformBuffers() {
+        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+        m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        m_uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        m_uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+            this->createBuffer(bufferSize, usageFlags, propertyFlags, m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+            
+            vkMapMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], 0, bufferSize, 0, &m_uniformBuffersMapped[i]);
+        }
+    }
+
+    void createDescriptorPool() {
+        auto poolSize = VkDescriptorPoolSize {};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        auto poolInfo = VkDescriptorPoolCreateInfo {};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        auto descriptorPool = VkDescriptorPool {};
+        auto result = vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor pool!");
+        }
+
+        m_descriptorPool = descriptorPool;
+    }
+
+    void createDescriptorSets() {
+        auto layouts = std::vector<VkDescriptorSetLayout> { MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout };
+        
+        auto allocInfo = VkDescriptorSetAllocateInfo {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        allocInfo.pSetLayouts = layouts.data();
+
+        m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+        auto result = vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_descriptorSets.data());
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            auto bufferInfo = VkDescriptorBufferInfo {};
+            bufferInfo.buffer = m_uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
+
+            auto descriptorWrite = VkWriteDescriptorSet {};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = m_descriptorSets[i];
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            descriptorWrite.pImageInfo = nullptr;       // Optional
+            descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+            vkUpdateDescriptorSets(m_engine->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
+        }
     }
 
     void createCommandBuffers() {
@@ -1920,8 +2049,8 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.vert.hlsl.spv");
-        auto fragmentShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.frag.hlsl.spv");
+        auto vertexShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.vert.glsl.spv");
+        auto fragmentShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.frag.glsl.spv");
 
         auto vertexShaderStageInfo = VkPipelineShaderStageCreateInfo {};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1979,7 +2108,10 @@ private:
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        /*
         rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        */
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
         auto multisampling = VkPipelineMultisampleStateCreateInfo {};
@@ -2032,13 +2164,13 @@ private:
 
         auto pipelineLayoutInfo = VkPipelineLayoutCreateInfo {};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pSetLayouts = nullptr;         // Optional
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
         pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        auto result = vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -2060,7 +2192,7 @@ private:
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
         pipelineInfo.basePipelineIndex = -1;              // Optional
 
-        auto result = vkCreateGraphicsPipelines(
+        result = vkCreateGraphicsPipelines(
             m_engine->getLogicalDevice(), 
             VK_NULL_HANDLE, 
             1, 
@@ -2155,7 +2287,17 @@ private:
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
 
         vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_pipelineLayout,
+            0,
+            1,
+            &m_descriptorSets[m_currentFrame],
+            0,
+            nullptr
+        );
+        
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
@@ -2195,6 +2337,30 @@ private:
         }
     }
 
+    void updateUniformBuffer(uint32_t currentImage) {
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        auto ubo = UniformBufferObject {};
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(
+            glm::vec3(2.0f, 2.0f, 2.0f),
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        );
+        ubo.proj = glm::perspective(
+            glm::radians(45.0f),
+            m_swapChainExtent.width / (float) m_swapChainExtent.height,
+            0.1f,
+            10.0f
+        );
+        ubo.proj[1][1] *= -1;
+
+        memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    }
+
     void draw() {
         vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -2215,6 +2381,8 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
+        this->updateUniformBuffer(m_currentFrame);
+
         vkResetFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
         vkResetCommandBuffer(m_commandBuffers[m_currentFrame], /* VkCommandBufferResetFlagBits */ 0);
@@ -2228,7 +2396,6 @@ private:
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
-
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
 
@@ -2236,7 +2403,8 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
-        if (vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
+        result = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -2249,7 +2417,6 @@ private:
         auto swapChains = std::array<VkSwapchainKHR, 1> { m_swapChain };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains.data();
-
         presentInfo.pImageIndices = &imageIndex;
 
         result = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
