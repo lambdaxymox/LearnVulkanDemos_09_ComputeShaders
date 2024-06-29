@@ -2065,8 +2065,8 @@ private:
     }
 
     void createGraphicsPipeline() {
-        auto vertexShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.vert.glsl.spv");
-        auto fragmentShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.frag.glsl.spv");
+        auto vertexShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.vert.hlsl.spv");
+        auto fragmentShaderModule = m_engine->createShaderModuleFromFile("shaders/shader.frag.hlsl.spv");
 
         auto vertexShaderStageInfo = VkPipelineShaderStageCreateInfo {};
         vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
