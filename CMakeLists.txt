@@ -66,7 +66,7 @@ endfunction()
 
 cmake_minimum_required(VERSION 3.28)
 
-project("LearnVulkanDemos_03_UniformBuffers" VERSION 1.0.0 LANGUAGES CXX)
+project("LearnVulkanDemos_04_TextureMapping" VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -84,17 +84,17 @@ add_subdirectory(internal/vulkan_engine)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
-add_executable(LearnVulkanDemos_03_UniformBuffers)
-target_sources(LearnVulkanDemos_03_UniformBuffers PRIVATE
+add_executable(LearnVulkanDemos_04_TextureMapping)
+target_sources(LearnVulkanDemos_04_TextureMapping PRIVATE
     src/main.cpp
 )
-target_link_libraries(LearnVulkanDemos_03_UniformBuffers PRIVATE Vulkan::Vulkan)
-target_link_libraries(LearnVulkanDemos_03_UniformBuffers PRIVATE vulkan_engine)
-target_link_libraries(LearnVulkanDemos_03_UniformBuffers PRIVATE glfw)
-target_link_libraries(LearnVulkanDemos_03_UniformBuffers PRIVATE glm)
-target_link_libraries(LearnVulkanDemos_03_UniformBuffers PRIVATE fmt)
-add_dependencies(LearnVulkanDemos_03_UniformBuffers GLSL_Shaders)
-add_dependencies(LearnVulkanDemos_03_UniformBuffers HLSL_Shaders)
+target_link_libraries(LearnVulkanDemos_04_TextureMapping PRIVATE Vulkan::Vulkan)
+target_link_libraries(LearnVulkanDemos_04_TextureMapping PRIVATE vulkan_engine)
+target_link_libraries(LearnVulkanDemos_04_TextureMapping PRIVATE glfw)
+target_link_libraries(LearnVulkanDemos_04_TextureMapping PRIVATE glm)
+target_link_libraries(LearnVulkanDemos_04_TextureMapping PRIVATE fmt)
+add_dependencies(LearnVulkanDemos_04_TextureMapping GLSL_Shaders)
+add_dependencies(LearnVulkanDemos_04_TextureMapping HLSL_Shaders)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 find_program(DX_SHADER_COMPILER dxc HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
