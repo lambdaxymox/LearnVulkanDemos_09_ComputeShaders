@@ -80,6 +80,7 @@ add_subdirectory(external/glfw-3.4)
 add_subdirectory(external/glm-1.0.1)
 add_subdirectory(external/fmt-10.2.0)
 add_subdirectory(external/stb)
+add_subdirectory(external/tiny_obj_loader)
 
 add_subdirectory(internal/vulkan_engine)
 
@@ -95,6 +96,7 @@ target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE glfw)
 target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE glm)
 target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE fmt)
 target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE stb)
+target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE tiny_obj_loader)
 add_dependencies(LearnVulkanDemos_06_LoadingModels GLSL_Shaders)
 add_dependencies(LearnVulkanDemos_06_LoadingModels HLSL_Shaders)
 
