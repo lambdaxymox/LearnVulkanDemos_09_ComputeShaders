@@ -66,7 +66,7 @@ endfunction()
 
 cmake_minimum_required(VERSION 3.28)
 
-project("LearnVulkanDemos_06_LoadingModels" VERSION 1.0.0 LANGUAGES CXX)
+project("LearnVulkanDemos_07_GeneratingMipMaps" VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -86,19 +86,19 @@ add_subdirectory(internal/vulkan_engine)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
-add_executable(LearnVulkanDemos_06_LoadingModels)
-target_sources(LearnVulkanDemos_06_LoadingModels PRIVATE
+add_executable(LearnVulkanDemos_07_GeneratingMipMaps)
+target_sources(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE
     src/main.cpp
 )
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE Vulkan::Vulkan)
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE vulkan_engine)
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE glfw)
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE glm)
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE fmt)
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE stb)
-target_link_libraries(LearnVulkanDemos_06_LoadingModels PRIVATE tiny_obj_loader)
-add_dependencies(LearnVulkanDemos_06_LoadingModels GLSL_Shaders)
-add_dependencies(LearnVulkanDemos_06_LoadingModels HLSL_Shaders)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE Vulkan::Vulkan)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE vulkan_engine)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE glfw)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE glm)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE fmt)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE stb)
+target_link_libraries(LearnVulkanDemos_07_GeneratingMipMaps PRIVATE tiny_obj_loader)
+add_dependencies(LearnVulkanDemos_07_GeneratingMipMaps GLSL_Shaders)
+add_dependencies(LearnVulkanDemos_07_GeneratingMipMaps HLSL_Shaders)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 find_program(DX_SHADER_COMPILER dxc HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
