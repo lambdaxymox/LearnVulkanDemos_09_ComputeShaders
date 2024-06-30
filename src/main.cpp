@@ -1812,41 +1812,6 @@ private:
         vkFreeCommandBuffers(m_engine->getLogicalDevice(), m_engine->getCommandPool(), 1, &commandBuffer);
     }
 
-    /*
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-        auto allocInfo = VkCommandBufferAllocateInfo {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_engine->getCommandPool();
-        allocInfo.commandBufferCount = 1;
-
-        auto commandBuffer = VkCommandBuffer {};
-        vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, &commandBuffer);
-
-        auto beginInfo = VkCommandBufferBeginInfo {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-        auto copyRegion = VkBufferCopy {};
-        copyRegion.size = size;
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-        vkEndCommandBuffer(commandBuffer);
-
-        auto submitInfo = VkSubmitInfo {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-
-        vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(m_engine->getGraphicsQueue());
-
-        vkFreeCommandBuffers(m_engine->getLogicalDevice(), m_engine->getCommandPool(), 1, &commandBuffer);
-    }
-    */
-
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
         VkCommandBuffer commandBuffer = this->beginSingleTimeCommands();
 
@@ -2157,27 +2122,6 @@ private:
         }
     }
 
-    /*
-    void createDescriptorPool() {
-        auto poolSize = VkDescriptorPoolSize {};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-        auto poolInfo = VkDescriptorPoolCreateInfo {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-        auto descriptorPool = VkDescriptorPool {};
-        auto result = vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
-
-        m_descriptorPool = descriptorPool;
-    }
-    */
     void createDescriptorPool() {
         auto poolSizes = std::array<VkDescriptorPoolSize, 2> {};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2200,43 +2144,6 @@ private:
         m_descriptorPool = descriptorPool;
     }
 
-    /*
-    void createDescriptorSets() {
-        auto layouts = std::vector<VkDescriptorSetLayout> { MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout };
-        
-        auto allocInfo = VkDescriptorSetAllocateInfo {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
-
-        m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        auto result = vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_descriptorSets.data());
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            auto bufferInfo = VkDescriptorBufferInfo {};
-            bufferInfo.buffer = m_uniformBuffers[i];
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
-
-            auto descriptorWrite = VkWriteDescriptorSet {};
-            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrite.dstSet = m_descriptorSets[i];
-            descriptorWrite.dstBinding = 0;
-            descriptorWrite.dstArrayElement = 0;
-            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrite.descriptorCount = 1;
-            descriptorWrite.pBufferInfo = &bufferInfo;
-            descriptorWrite.pImageInfo = nullptr;       // Optional
-            descriptorWrite.pTexelBufferView = nullptr; // Optional
-
-            vkUpdateDescriptorSets(m_engine->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
-        }
-    }
-    */
     void createDescriptorSets() {
         auto layouts = std::vector<VkDescriptorSetLayout> { MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout };
         auto allocInfo = VkDescriptorSetAllocateInfo {};
