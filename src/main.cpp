@@ -2562,7 +2562,7 @@ private:
         SwapChainSupportDetails swapChainSupport = m_engine->querySwapChainSupport(m_engine->getPhysicalDevice(), m_engine->getSurface());
         VkSurfaceFormatKHR surfaceFormat = this->selectSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = this->selectSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = this->selectSwapExtent(swapChainSupport.capabilities);
+        VkExtent2D swapChainExtent = this->selectSwapExtent(swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -2576,7 +2576,7 @@ private:
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
+        createInfo.imageExtent = swapChainExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -2614,7 +2614,7 @@ private:
         m_swapChain = swapChain;
         m_swapChainImages = std::move(swapChainImages);
         m_swapChainImageFormat = surfaceFormat.format;
-        m_swapChainExtent = extent;
+        m_swapChainExtent = swapChainExtent;
     }
 
     void createSwapChainImageViews() {
@@ -3409,7 +3409,7 @@ private:
         );
         VkSurfaceFormatKHR surfaceFormat = this->selectSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = this->selectSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = this->selectSwapExtent(swapChainSupport.capabilities);
+        VkExtent2D swapChainExtent = this->selectSwapExtent(swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -3422,7 +3422,7 @@ private:
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
+        createInfo.imageExtent = swapChainExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -3461,7 +3461,7 @@ private:
         m_swapChain = swapChain;
         m_swapChainImages = std::move(swapChainImages);
         m_swapChainImageFormat = surfaceFormat.format;
-        m_swapChainExtent = extent;
+        m_swapChainExtent = swapChainExtent;
     }
 
     void createSwapChainImageViews() {
