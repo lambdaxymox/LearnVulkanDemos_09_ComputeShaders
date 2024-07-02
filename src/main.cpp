@@ -1667,7 +1667,7 @@ private:
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
+    VkPipelineLayout m_graphicsPipelineLayout;
     VkPipeline m_graphicsPipeline;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -1691,7 +1691,7 @@ private:
             this->cleanupSwapChain();
 
             vkDestroyPipeline(m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
-            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_graphicsPipelineLayout, nullptr);
             vkDestroyRenderPass(m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -2811,7 +2811,7 @@ private:
         pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        const auto resultCreatePipelineLayout = vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
+        const auto resultCreatePipelineLayout = vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_graphicsPipelineLayout);
         if (resultCreatePipelineLayout != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
@@ -2828,7 +2828,7 @@ private:
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = m_graphicsPipelineLayout;
         pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
@@ -2936,7 +2936,7 @@ private:
         vkCmdBindDescriptorSets(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_pipelineLayout,
+            m_graphicsPipelineLayout,
             0,
             1,
             &m_descriptorSets[m_currentFrame],
@@ -3186,7 +3186,7 @@ private:
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
     VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
+    VkPipelineLayout m_graphicsPipelineLayout;
     VkPipeline m_graphicsPipeline;
 
     VkDescriptorSetLayout m_computeDescriptorSetLayout;
@@ -3277,7 +3277,7 @@ private:
             this->cleanupSwapChain();
 
             vkDestroyPipeline(m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
-            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_graphicsPipelineLayout, nullptr);
 
             vkDestroyPipeline(m_engine->getLogicalDevice(), m_computePipeline, nullptr);
             vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_computePipelineLayout, nullptr);
@@ -3622,7 +3622,7 @@ private:
             m_engine->getLogicalDevice(),
             &pipelineLayoutInfo,
             nullptr,
-            &m_pipelineLayout
+            &m_graphicsPipelineLayout
         );
         if (resultCreatePipelineLayout != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
@@ -3639,7 +3639,7 @@ private:
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = m_graphicsPipelineLayout;
         pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
