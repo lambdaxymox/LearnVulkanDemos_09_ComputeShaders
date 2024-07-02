@@ -1670,16 +1670,16 @@ private:
     VkPipelineLayout m_graphicsPipelineLayout;
     VkPipeline m_graphicsPipeline;
 
-    std::vector<VkSemaphore> m_imageAvailableSemaphores;
-    std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkFence> m_inFlightFences;
-
     VkSwapchainKHR m_swapChain;
     std::vector<VkImage> m_swapChainImages;
     VkFormat m_swapChainImageFormat;
     VkExtent2D m_swapChainExtent;
     std::vector<VkImageView> m_swapChainImageViews;
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
+
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkFence> m_inFlightFences;
     
     uint32_t m_currentFrame = 0;
 
@@ -3069,19 +3069,18 @@ private:
         vkResetCommandBuffer(m_commandBuffers[m_currentFrame], /* VkCommandBufferResetFlagBits */ 0);
         this->recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
 
-        auto submitInfo = VkSubmitInfo {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
         auto waitSemaphores = std::array<VkSemaphore, 1> { m_imageAvailableSemaphores[m_currentFrame] };
         auto waitStages = std::array<VkPipelineStageFlags, 1> { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        submitInfo.waitSemaphoreCount = 1;
+        auto signalSemaphores = std::array<VkSemaphore, 1> { m_renderFinishedSemaphores[m_currentFrame] };
+        
+        auto submitInfo = VkSubmitInfo {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = waitSemaphores.size();
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
-
-        auto signalSemaphores = std::array<VkSemaphore, 1> { m_renderFinishedSemaphores[m_currentFrame] };
-        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.signalSemaphoreCount = signalSemaphores.size();
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
         const auto resultQueueSubmit = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
@@ -3089,13 +3088,12 @@ private:
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
+        auto swapChains = std::array<VkSwapchainKHR, 1> { m_swapChain };
+
         auto presentInfo = VkPresentInfoKHR {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores.data();
-
-        auto swapChains = std::array<VkSwapchainKHR, 1> { m_swapChain };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains.data();
         presentInfo.pImageIndices = &imageIndex;
@@ -4186,9 +4184,6 @@ private:
     }
 
     void draw() {
-        auto submitInfo = VkSubmitInfo {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
         // Compute submission        
         vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_computeInFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -4199,10 +4194,15 @@ private:
         vkResetCommandBuffer(m_computeCommandBuffers[m_currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
         this->recordComputeCommandBuffer(m_computeCommandBuffers[m_currentFrame]);
 
+        auto waitSempaphores = std::array<VkSemaphore, 0> {};
+        auto computeSignalSemaphores = std::array<VkSemaphore, 1> { m_computeFinishedSemaphores[m_currentFrame] };
+
+        auto submitInfo = VkSubmitInfo {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_computeCommandBuffers[m_currentFrame];
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &m_computeFinishedSemaphores[m_currentFrame];
+        submitInfo.signalSemaphoreCount = computeSignalSemaphores.size();
+        submitInfo.pSignalSemaphores = computeSignalSemaphores.data();
 
         const auto resultQueueSubmitCompute = vkQueueSubmit(m_engine->getComputeQueue(), 1, &submitInfo, m_computeInFlightFences[m_currentFrame]);
         if (resultQueueSubmitCompute != VK_SUCCESS) {
@@ -4242,31 +4242,31 @@ private:
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
         };
+        auto graphicsSignalSemaphores = std::array<VkSemaphore, 1> { m_renderFinishedSemaphores[m_currentFrame] };
+
         submitInfo = VkSubmitInfo {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = 2;
+        submitInfo.waitSemaphoreCount = waitSemaphores.size();
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
+        submitInfo.signalSemaphoreCount = graphicsSignalSemaphores.size();
+        submitInfo.pSignalSemaphores = graphicsSignalSemaphores.data();
 
         const auto resultQueueSubmitGraphics = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
         if (resultQueueSubmitGraphics != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
+        auto swapChains = std::array<VkSwapchainKHR, 1> { m_swapChain };
+
         auto presentInfo = VkPresentInfoKHR {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
-
-        auto swapChains = std::array<VkSwapchainKHR, 1> { m_swapChain };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains.data();
-
         presentInfo.pImageIndices = &imageIndex;
 
         const auto resultQueuePresentKHR = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
