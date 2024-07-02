@@ -3242,8 +3242,8 @@ private:
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkSemaphore> m_computeFinishedSemaphores;
     std::vector<VkFence> m_inFlightFences;
+    std::vector<VkSemaphore> m_computeFinishedSemaphores;
     std::vector<VkFence> m_computeInFlightFences;
     uint32_t m_currentFrame = 0;
 
