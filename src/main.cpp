@@ -3422,7 +3422,8 @@ private:
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
 
-        if (vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
+        const auto result = vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
@@ -3453,7 +3454,8 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS) {
+            const auto result = vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]);
+            if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
         }
@@ -3496,7 +3498,8 @@ private:
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        const auto result = vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
@@ -3526,7 +3529,8 @@ private:
         layoutInfo.bindingCount = 3;
         layoutInfo.pBindings = layoutBindings.data();
 
-        if (vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &m_computeDescriptorSetLayout) != VK_SUCCESS) {
+        const auto result = vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &m_computeDescriptorSetLayout);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute descriptor set layout!");
         }
     }
@@ -3621,7 +3625,13 @@ private:
         pipelineLayoutInfo.setLayoutCount = 0;
         pipelineLayoutInfo.pSetLayouts = nullptr;
 
-        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        const auto resultCreatePipelineLayout = vkCreatePipelineLayout(
+            m_engine->getLogicalDevice(),
+            &pipelineLayoutInfo,
+            nullptr,
+            &m_pipelineLayout
+        );
+        if (resultCreatePipelineLayout != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -3641,7 +3651,16 @@ private:
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_engine->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
+        const auto resultCreateGraphicsPipelines = vkCreateGraphicsPipelines(
+            m_engine->getLogicalDevice(),
+            VK_NULL_HANDLE,
+            1,
+            &pipelineInfo, 
+            nullptr,
+            &m_graphicsPipeline
+        );
+        
+        if (resultCreateGraphicsPipelines != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
@@ -3663,7 +3682,14 @@ private:
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_computeDescriptorSetLayout;
 
-        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_computePipelineLayout) != VK_SUCCESS) {
+        const auto resultCreatePipelineLayout = vkCreatePipelineLayout(
+            m_engine->getLogicalDevice(),
+            &pipelineLayoutInfo,
+            nullptr,
+            &m_computePipelineLayout
+        );
+        
+        if (resultCreatePipelineLayout != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute pipeline layout!");
         }
 
@@ -3672,7 +3698,16 @@ private:
         pipelineInfo.layout = m_computePipelineLayout;
         pipelineInfo.stage = computeShaderStageInfo;
 
-        if (vkCreateComputePipelines(m_engine->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_computePipeline) != VK_SUCCESS) {
+        const auto resultCreateComputePipelines = vkCreateComputePipelines(
+            m_engine->getLogicalDevice(),
+            VK_NULL_HANDLE,
+            1,
+            &pipelineInfo,
+            nullptr,
+            &m_computePipeline
+        );
+        
+        if (resultCreateComputePipelines != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute pipeline!");
         }
 
@@ -3696,7 +3731,8 @@ private:
             framebufferInfo.height = m_swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(m_engine->getLogicalDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+            const auto result = vkCreateFramebuffer(m_engine->getLogicalDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]);
+            if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
@@ -3719,7 +3755,7 @@ private:
             particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
         }
 
-        VkDeviceSize bufferSize = sizeof(Particle) * PARTICLE_COUNT;
+        auto bufferSize = VkDeviceSize { sizeof(Particle) * PARTICLE_COUNT };
 
         // Create a staging buffer used to upload data to the gpu
         auto stagingBuffer = VkBuffer {};
@@ -3790,7 +3826,8 @@ private:
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-        if (vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+        const auto result = vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_descriptorPool);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
@@ -3804,7 +3841,8 @@ private:
         allocInfo.pSetLayouts = layouts.data();
 
         m_computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_computeDescriptorSets.data()) != VK_SUCCESS) {
+        const auto result = vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_computeDescriptorSets.data());
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
@@ -3861,7 +3899,8 @@ private:
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(m_engine->getLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+        const auto resultCreateBuffer = vkCreateBuffer(m_engine->getLogicalDevice(), &bufferInfo, nullptr, &buffer);
+        if (resultCreateBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to create buffer!");
         }
 
@@ -3873,7 +3912,8 @@ private:
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(m_engine->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+        const auto resultAllocateMemory = vkAllocateMemory(m_engine->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory);
+        if (resultAllocateMemory != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate buffer memory!");
         }
 
@@ -3933,9 +3973,10 @@ private:
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_engine->getCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
+        allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-        if (vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
+        const auto result = vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data());
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
@@ -3947,9 +3988,10 @@ private:
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_engine->getCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)m_computeCommandBuffers.size();
+        allocInfo.commandBufferCount = static_cast<uint32_t>(m_computeCommandBuffers.size());
 
-        if (vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_computeCommandBuffers.data()) != VK_SUCCESS) {
+        const auto result = vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_computeCommandBuffers.data());
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate compute command buffers!");
         }
     }
@@ -3958,7 +4000,8 @@ private:
         auto beginInfo = VkCommandBufferBeginInfo {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        const auto resultBeginCommandBuffer = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        if (resultBeginCommandBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
@@ -3966,7 +4009,7 @@ private:
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_renderPass;
         renderPassInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
-        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.offset = VkOffset2D { 0, 0 };
         renderPassInfo.renderArea.extent = m_swapChainExtent;
 
         auto clearColor = VkClearValue { { 0.0f, 0.0f, 0.0f, 1.0f } };
@@ -3975,30 +4018,31 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-            auto viewport = VkViewport {};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float) m_swapChainExtent.width;
-            viewport.height = (float) m_swapChainExtent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        auto viewport = VkViewport {};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(m_swapChainExtent.width);
+        viewport.height = static_cast<float>(m_swapChainExtent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-            auto scissor = VkRect2D {};
-            scissor.offset = {0, 0};
-            scissor.extent = m_swapChainExtent;
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);            
+        auto scissor = VkRect2D {};
+        scissor.offset = VkOffset2D { 0, 0 };
+        scissor.extent = m_swapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);            
 
-            auto offsets = std::array<VkDeviceSize, 1> { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_shaderStorageBuffers[m_currentFrame], offsets.data());
+        auto offsets = std::array<VkDeviceSize, 1> { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_shaderStorageBuffers[m_currentFrame], offsets.data());
 
-            vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
+        vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        const auto resultEndCommandBuffer = vkEndCommandBuffer(commandBuffer);
+        if (resultEndCommandBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
     }
@@ -4007,7 +4051,8 @@ private:
         auto beginInfo = VkCommandBufferBeginInfo {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        const auto resultBeginCommandBuffer = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        if (resultBeginCommandBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording compute command buffer!");
         }
 
@@ -4017,7 +4062,8 @@ private:
 
         vkCmdDispatch(commandBuffer, PARTICLE_COUNT / 256, 1, 1);
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        const auto resultEndCommandBuffer = vkEndCommandBuffer(commandBuffer);
+        if (resultEndCommandBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to record compute command buffer!");
         }
 
@@ -4040,11 +4086,13 @@ private:
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             if (vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
                 vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+            {
                 throw std::runtime_error("failed to create graphics synchronization objects for a frame!");
             }
             if (vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_computeFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_computeInFlightFences[i]) != VK_SUCCESS) {
+                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_computeInFlightFences[i]) != VK_SUCCESS)
+            {
                 throw std::runtime_error("failed to create compute synchronization objects for a frame!");
             }
         }
@@ -4076,7 +4124,8 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &m_computeFinishedSemaphores[m_currentFrame];
 
-        if (vkQueueSubmit(m_engine->getComputeQueue(), 1, &submitInfo, m_computeInFlightFences[m_currentFrame]) != VK_SUCCESS) {
+        const auto resultQueueSubmitCompute = vkQueueSubmit(m_engine->getComputeQueue(), 1, &submitInfo, m_computeInFlightFences[m_currentFrame]);
+        if (resultQueueSubmitCompute != VK_SUCCESS) {
             throw std::runtime_error("failed to submit compute command buffer!");
         };
 
@@ -4084,7 +4133,7 @@ private:
         vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex = 0;
-        const auto result = vkAcquireNextImageKHR(
+        const auto resultAcquireNextImageKHR = vkAcquireNextImageKHR(
             m_engine->getLogicalDevice(),
             m_swapChain,
             UINT64_MAX,
@@ -4093,10 +4142,10 @@ private:
             &imageIndex
         );
         
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (resultAcquireNextImageKHR == VK_ERROR_OUT_OF_DATE_KHR) {
             this->recreateSwapChain();
             return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        } else if (resultAcquireNextImageKHR != VK_SUCCESS && resultAcquireNextImageKHR != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
@@ -4123,8 +4172,8 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
 
-        const auto resultQueueSubmit = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
-        if (resultQueueSubmit != VK_SUCCESS) {
+        const auto resultQueueSubmitGraphics = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+        if (resultQueueSubmitGraphics != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
