@@ -3180,45 +3180,45 @@ public:
 private:
     Engine* m_engine;
 
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkSwapchainKHR m_swapChain;
+    std::vector<VkImage> m_swapChainImages;
+    VkFormat m_swapChainImageFormat;
+    VkExtent2D m_swapChainExtent;
+    std::vector<VkImageView> m_swapChainImageViews;
+    std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
-    VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    VkRenderPass m_renderPass;
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_graphicsPipeline;
 
-    VkDescriptorSetLayout computeDescriptorSetLayout;
-    VkPipelineLayout computePipelineLayout;
-    VkPipeline computePipeline;
+    VkDescriptorSetLayout m_computeDescriptorSetLayout;
+    VkPipelineLayout m_computePipelineLayout;
+    VkPipeline m_computePipeline;
 
-    std::vector<VkBuffer> shaderStorageBuffers;
-    std::vector<VkDeviceMemory> shaderStorageBuffersMemory;
+    std::vector<VkBuffer> m_shaderStorageBuffers;
+    std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    std::vector<void*> m_uniformBuffersMapped;
 
-    VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> computeDescriptorSets;
+    VkDescriptorPool m_descriptorPool;
+    std::vector<VkDescriptorSet> m_computeDescriptorSets;
 
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::vector<VkCommandBuffer> computeCommandBuffers;
+    std::vector<VkCommandBuffer> m_commandBuffers;
+    std::vector<VkCommandBuffer> m_computeCommandBuffers;
 
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkSemaphore> computeFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    std::vector<VkFence> computeInFlightFences;
-    uint32_t currentFrame = 0;
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkSemaphore> m_computeFinishedSemaphores;
+    std::vector<VkFence> m_inFlightFences;
+    std::vector<VkFence> m_computeInFlightFences;
+    uint32_t m_currentFrame = 0;
 
-    bool framebufferResized = false;
+    // bool framebufferResized = false;
 
-    float lastFrameTime = 0.0f;
-    double lastTime = 0.0f;
+    float m_lastFrameTime = 0.0f;
+    double m_lastTime = 0.0f;
 
     bool m_enableValidationLayers { false };
     bool m_enableDebuggingExtensions { false };
@@ -3257,57 +3257,57 @@ private:
             // We want to animate the particle system using the last frames time to get smooth, frame-rate 
             // independent animation.
             double currentTime = glfwGetTime();
-            lastFrameTime = (currentTime - lastTime) * 1000.0;
-            lastTime = currentTime;
+            m_lastFrameTime = (currentTime - m_lastTime) * 1000.0;
+            m_lastTime = currentTime;
         }
 
         vkDeviceWaitIdle(m_engine->getLogicalDevice());
     }
 
     void cleanupSwapChain() {
-        for (auto framebuffer : swapChainFramebuffers) {
+        for (auto framebuffer : m_swapChainFramebuffers) {
             vkDestroyFramebuffer(m_engine->getLogicalDevice(), framebuffer, nullptr);
         }
 
-        for (auto imageView : swapChainImageViews) {
+        for (auto imageView : m_swapChainImageViews) {
             vkDestroyImageView(m_engine->getLogicalDevice(), imageView, nullptr);
         }
 
-        vkDestroySwapchainKHR(m_engine->getLogicalDevice(), swapChain, nullptr);
+        vkDestroySwapchainKHR(m_engine->getLogicalDevice(), m_swapChain, nullptr);
     }
 
     void cleanup() {
         if (m_engine->isInitialized()) {
             this->cleanupSwapChain();
 
-            vkDestroyPipeline(m_engine->getLogicalDevice(), graphicsPipeline, nullptr);
-            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), pipelineLayout, nullptr);
+            vkDestroyPipeline(m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_pipelineLayout, nullptr);
 
-            vkDestroyPipeline(m_engine->getLogicalDevice(), computePipeline, nullptr);
-            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), computePipelineLayout, nullptr);
+            vkDestroyPipeline(m_engine->getLogicalDevice(), m_computePipeline, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_computePipelineLayout, nullptr);
 
-            vkDestroyRenderPass(m_engine->getLogicalDevice(), renderPass, nullptr);
+            vkDestroyRenderPass(m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroyBuffer(m_engine->getLogicalDevice(), uniformBuffers[i], nullptr);
-                vkFreeMemory(m_engine->getLogicalDevice(), uniformBuffersMemory[i], nullptr);
+                vkDestroyBuffer(m_engine->getLogicalDevice(), m_uniformBuffers[i], nullptr);
+                vkFreeMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], nullptr);
             }
 
-            vkDestroyDescriptorPool(m_engine->getLogicalDevice(), descriptorPool, nullptr);
+            vkDestroyDescriptorPool(m_engine->getLogicalDevice(), m_descriptorPool, nullptr);
       
-            vkDestroyDescriptorSetLayout(m_engine->getLogicalDevice(), computeDescriptorSetLayout, nullptr);
+            vkDestroyDescriptorSetLayout(m_engine->getLogicalDevice(), m_computeDescriptorSetLayout, nullptr);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroyBuffer(m_engine->getLogicalDevice(), shaderStorageBuffers[i], nullptr);
-                vkFreeMemory(m_engine->getLogicalDevice(), shaderStorageBuffersMemory[i], nullptr);
+                vkDestroyBuffer(m_engine->getLogicalDevice(), m_shaderStorageBuffers[i], nullptr);
+                vkFreeMemory(m_engine->getLogicalDevice(), m_shaderStorageBuffersMemory[i], nullptr);
             }
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroySemaphore(m_engine->getLogicalDevice(), renderFinishedSemaphores[i], nullptr);
-                vkDestroySemaphore(m_engine->getLogicalDevice(), imageAvailableSemaphores[i], nullptr);
-                vkDestroySemaphore(m_engine->getLogicalDevice(), computeFinishedSemaphores[i], nullptr);
-                vkDestroyFence(m_engine->getLogicalDevice(), inFlightFences[i], nullptr);
-                vkDestroyFence(m_engine->getLogicalDevice(), computeInFlightFences[i], nullptr);
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_computeFinishedSemaphores[i], nullptr);
+                vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
+                vkDestroyFence(m_engine->getLogicalDevice(), m_computeInFlightFences[i], nullptr);
             }
 
             delete m_engine;
@@ -3419,27 +3419,27 @@ private:
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
 
-        if (vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), swapChain, &imageCount, nullptr);
-        swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), swapChain, &imageCount, swapChainImages.data());
+        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), m_swapChain, &imageCount, nullptr);
+        m_swapChainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), m_swapChain, &imageCount, m_swapChainImages.data());
 
-        swapChainImageFormat = surfaceFormat.format;
-        swapChainExtent = extent;
+        m_swapChainImageFormat = surfaceFormat.format;
+        m_swapChainExtent = extent;
     }
 
     void createImageViews() {
-        swapChainImageViews.resize(swapChainImages.size());
+        m_swapChainImageViews.resize(m_swapChainImages.size());
 
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
+        for (size_t i = 0; i < m_swapChainImages.size(); i++) {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = swapChainImages[i];
+            createInfo.image = m_swapChainImages[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = swapChainImageFormat;
+            createInfo.format = m_swapChainImageFormat;
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -3450,7 +3450,7 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+            if (vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
         }
@@ -3458,7 +3458,7 @@ private:
 
     void createRenderPass() {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = swapChainImageFormat;
+        colorAttachment.format = m_swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -3493,7 +3493,7 @@ private:
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
@@ -3523,7 +3523,7 @@ private:
         layoutInfo.bindingCount = 3;
         layoutInfo.pBindings = layoutBindings.data();
 
-        if (vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &computeDescriptorSetLayout) != VK_SUCCESS) {
+        if (vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &m_computeDescriptorSetLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute descriptor set layout!");
         }
     }
@@ -3618,7 +3618,7 @@ private:
         pipelineLayoutInfo.setLayoutCount = 0;
         pipelineLayoutInfo.pSetLayouts = nullptr;
 
-        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -3633,12 +3633,12 @@ private:
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = pipelineLayout;
-        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_engine->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(m_engine->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
@@ -3658,18 +3658,18 @@ private:
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &computeDescriptorSetLayout;
+        pipelineLayoutInfo.pSetLayouts = &m_computeDescriptorSetLayout;
 
-        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &computePipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_computePipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute pipeline layout!");
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipelineInfo.layout = computePipelineLayout;
+        pipelineInfo.layout = m_computePipelineLayout;
         pipelineInfo.stage = computeShaderStageInfo;
 
-        if (vkCreateComputePipelines(m_engine->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline) != VK_SUCCESS) {
+        if (vkCreateComputePipelines(m_engine->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_computePipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute pipeline!");
         }
 
@@ -3677,23 +3677,23 @@ private:
     }
 
     void createFramebuffers() {
-        swapChainFramebuffers.resize(swapChainImageViews.size());
+        m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
 
-        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+        for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
             auto attachments = std::array<VkImageView, 1> {
-                swapChainImageViews[i]
+                m_swapChainImageViews[i]
             };
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.renderPass = m_renderPass;
             framebufferInfo.attachmentCount = 1;
             framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = swapChainExtent.width;
-            framebufferInfo.height = swapChainExtent.height;
+            framebufferInfo.width = m_swapChainExtent.width;
+            framebufferInfo.height = m_swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(m_engine->getLogicalDevice(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+            if (vkCreateFramebuffer(m_engine->getLogicalDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
@@ -3728,13 +3728,13 @@ private:
         memcpy(data, particles.data(), (size_t)bufferSize);
         vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
 
-        shaderStorageBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        shaderStorageBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        m_shaderStorageBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        m_shaderStorageBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
 
         // Copy initial particle data to all storage buffers
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shaderStorageBuffers[i], shaderStorageBuffersMemory[i]);
-            copyBuffer(stagingBuffer, shaderStorageBuffers[i], bufferSize);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_shaderStorageBuffers[i], m_shaderStorageBuffersMemory[i]);
+            copyBuffer(stagingBuffer, m_shaderStorageBuffers[i], bufferSize);
         }
 
         vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
@@ -3745,14 +3745,14 @@ private:
     void createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(ComputeShaderUniformBufferObject);
 
-        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+        m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        m_uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        m_uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformBuffers[i], m_uniformBuffersMemory[i]);
 
-            vkMapMemory(m_engine->getLogicalDevice(), uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+            vkMapMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], 0, bufferSize, 0, &m_uniformBuffersMapped[i]);
         }
     }
 
@@ -3770,33 +3770,33 @@ private:
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-        if (vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
     void createComputeDescriptorSets() {
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_computeDescriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorPool = m_descriptorPool;
         allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         allocInfo.pSetLayouts = layouts.data();
 
-        computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, computeDescriptorSets.data()) != VK_SUCCESS) {
+        m_computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+        if (vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_computeDescriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             VkDescriptorBufferInfo uniformBufferInfo{};
-            uniformBufferInfo.buffer = uniformBuffers[i];
+            uniformBufferInfo.buffer = m_uniformBuffers[i];
             uniformBufferInfo.offset = 0;
             uniformBufferInfo.range = sizeof(ComputeShaderUniformBufferObject);
 
             std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = computeDescriptorSets[i];
+            descriptorWrites[0].dstSet = m_computeDescriptorSets[i];
             descriptorWrites[0].dstBinding = 0;
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3804,12 +3804,12 @@ private:
             descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
 
             VkDescriptorBufferInfo storageBufferInfoLastFrame{};
-            storageBufferInfoLastFrame.buffer = shaderStorageBuffers[(i - 1) % MAX_FRAMES_IN_FLIGHT];
+            storageBufferInfoLastFrame.buffer = m_shaderStorageBuffers[(i - 1) % MAX_FRAMES_IN_FLIGHT];
             storageBufferInfoLastFrame.offset = 0;
             storageBufferInfoLastFrame.range = sizeof(Particle) * PARTICLE_COUNT;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = computeDescriptorSets[i];
+            descriptorWrites[1].dstSet = m_computeDescriptorSets[i];
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -3817,12 +3817,12 @@ private:
             descriptorWrites[1].pBufferInfo = &storageBufferInfoLastFrame;
 
             VkDescriptorBufferInfo storageBufferInfoCurrentFrame{};
-            storageBufferInfoCurrentFrame.buffer = shaderStorageBuffers[i];
+            storageBufferInfoCurrentFrame.buffer = m_shaderStorageBuffers[i];
             storageBufferInfoCurrentFrame.offset = 0;
             storageBufferInfoCurrentFrame.range = sizeof(Particle) * PARTICLE_COUNT;
 
             descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[2].dstSet = computeDescriptorSets[i];
+            descriptorWrites[2].dstSet = m_computeDescriptorSets[i];
             descriptorWrites[2].dstBinding = 2;
             descriptorWrites[2].dstArrayElement = 0;
             descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -3907,29 +3907,29 @@ private:
     }
 
     void createCommandBuffers() {
-        commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_engine->getCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+        allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
 
-        if (vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
 
     void createComputeCommandBuffers() {
-        computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        m_computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_engine->getCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)computeCommandBuffers.size();
+        allocInfo.commandBufferCount = (uint32_t)m_computeCommandBuffers.size();
 
-        if (vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, computeCommandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_computeCommandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate compute command buffers!");
         }
     }
@@ -3944,10 +3944,10 @@ private:
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderPass = m_renderPass;
+        renderPassInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChainExtent;
+        renderPassInfo.renderArea.extent = m_swapChainExtent;
 
         VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
         renderPassInfo.clearValueCount = 1;
@@ -3955,24 +3955,24 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
             VkViewport viewport{};
             viewport.x = 0.0f;
             viewport.y = 0.0f;
-            viewport.width = (float) swapChainExtent.width;
-            viewport.height = (float) swapChainExtent.height;
+            viewport.width = (float) m_swapChainExtent.width;
+            viewport.height = (float) m_swapChainExtent.height;
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
             VkRect2D scissor{};
             scissor.offset = {0, 0};
-            scissor.extent = swapChainExtent;
+            scissor.extent = m_swapChainExtent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);            
 
             auto offsets = std::array<VkDeviceSize, 1> { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets.data());
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_shaderStorageBuffers[m_currentFrame], offsets.data());
 
             vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
@@ -3991,9 +3991,9 @@ private:
             throw std::runtime_error("failed to begin recording compute command buffer!");
         }
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &computeDescriptorSets[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &m_computeDescriptorSets[m_currentFrame], 0, nullptr);
 
         vkCmdDispatch(commandBuffer, PARTICLE_COUNT / 256, 1, 1);
 
@@ -4004,11 +4004,11 @@ private:
     }
 
     void createSyncObjects() {
-        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        computeFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        computeInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+        m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_computeFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+        m_computeInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -4018,13 +4018,13 @@ private:
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+            if (vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create graphics synchronization objects for a frame!");
             }
-            if (vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &computeFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &computeInFlightFences[i]) != VK_SUCCESS) {
+            if (vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &m_computeFinishedSemaphores[i]) != VK_SUCCESS ||
+                vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &m_computeInFlightFences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create compute synchronization objects for a frame!");
             }
         }
@@ -4032,9 +4032,9 @@ private:
 
     void updateUniformBuffer(uint32_t currentImage) {
         ComputeShaderUniformBufferObject ubo{};
-        ubo.deltaTime = lastFrameTime * 2.0f;
+        ubo.deltaTime = m_lastFrameTime * 2.0f;
 
-        memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+        memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
     }
 
     void draw() {
@@ -4042,29 +4042,29 @@ private:
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         // Compute submission        
-        vkWaitForFences(m_engine->getLogicalDevice(), 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_computeInFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
-        this->updateUniformBuffer(currentFrame);
+        this->updateUniformBuffer(m_currentFrame);
 
-        vkResetFences(m_engine->getLogicalDevice(), 1, &computeInFlightFences[currentFrame]);
+        vkResetFences(m_engine->getLogicalDevice(), 1, &m_computeInFlightFences[m_currentFrame]);
 
-        vkResetCommandBuffer(computeCommandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-        this->recordComputeCommandBuffer(computeCommandBuffers[currentFrame]);
+        vkResetCommandBuffer(m_computeCommandBuffers[m_currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        this->recordComputeCommandBuffer(m_computeCommandBuffers[m_currentFrame]);
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &computeCommandBuffers[currentFrame];
+        submitInfo.pCommandBuffers = &m_computeCommandBuffers[m_currentFrame];
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &computeFinishedSemaphores[currentFrame];
+        submitInfo.pSignalSemaphores = &m_computeFinishedSemaphores[m_currentFrame];
 
-        if (vkQueueSubmit(m_engine->getComputeQueue(), 1, &submitInfo, computeInFlightFences[currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(m_engine->getComputeQueue(), 1, &submitInfo, m_computeInFlightFences[m_currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit compute command buffer!");
         };
 
         // Graphics submission
-        vkWaitForFences(m_engine->getLogicalDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_engine->getLogicalDevice(), swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(m_engine->getLogicalDevice(), m_swapChain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             this->recreateSwapChain();
@@ -4073,14 +4073,14 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        vkResetFences(m_engine->getLogicalDevice(), 1, &inFlightFences[currentFrame]);
+        vkResetFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
 
-        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-        this->recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+        vkResetCommandBuffer(m_commandBuffers[m_currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        this->recordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
 
         auto waitSemaphores = std::array<VkSemaphore, 2> { 
-            computeFinishedSemaphores[currentFrame],
-            imageAvailableSemaphores[currentFrame]
+            m_computeFinishedSemaphores[m_currentFrame],
+            m_imageAvailableSemaphores[m_currentFrame]
         };
         auto waitStages = std::array<VkPipelineStageFlags, 2> { 
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
@@ -4093,11 +4093,11 @@ private:
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+        submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
+        submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
 
-        if (vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -4105,9 +4105,9 @@ private:
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
+        presentInfo.pWaitSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
 
-        auto swapChains = std::array<VkSwapchainKHR, 1> { swapChain };
+        auto swapChains = std::array<VkSwapchainKHR, 1> { m_swapChain };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains.data();
 
@@ -4115,14 +4115,14 @@ private:
 
         result = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
-            framebufferResized = false;
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
+            m_engine->setFramebufferResized(false);
             this->recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
-        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 };
 
