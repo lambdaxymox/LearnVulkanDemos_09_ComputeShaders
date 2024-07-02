@@ -390,7 +390,7 @@ public:
         createInfo.ppEnabledExtensionNames = enabledExtensionNames.data();
 
         auto instance = VkInstance {};
-        auto result = vkCreateInstance(&createInfo, nullptr, &instance);
+        const auto result = vkCreateInstance(&createInfo, nullptr, &instance);
         if (result != VK_SUCCESS) {
             throw std::runtime_error(fmt::format("Failed to create Vulkan instance."));
         }
@@ -839,7 +839,7 @@ public:
         }
 
         auto device = VkDevice {};
-        auto result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &device);
+        const auto result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &device);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
@@ -893,8 +893,8 @@ public:
         }
 
         uint32_t physicalDeviceCount = 0;
-        auto result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
-        if (result != VK_SUCCESS) {
+        const auto resultEnumeratePhysicalDevices = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+        if (resultEnumeratePhysicalDevices != VK_SUCCESS) {
             throw std::invalid_argument { "Got an invalid `VkInstance` handle" };
         }
 
@@ -912,7 +912,7 @@ public:
         createInfo.pfnUserCallback = debugCallback;
 
         auto debugMessenger = static_cast<VkDebugUtilsMessengerEXT>(nullptr);
-        result = VulkanDebugMessenger::CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
+        const auto result = VulkanDebugMessenger::CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger);
         if (result != VK_SUCCESS) {
             throw std::runtime_error { "failed to set up debug messenger!" };
         }
@@ -1014,7 +1014,7 @@ public:
 
     VkSurfaceKHR createSurface() {
         auto surface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
+        const auto result = glfwCreateWindowSurface(m_instance, m_window, nullptr, &surface);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
@@ -1205,7 +1205,7 @@ public:
         createInfo.flags = 0;
 
         auto shaderModule = VkShaderModule {};
-        auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
+        const auto result = vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create shader module!");
         }
@@ -1329,7 +1329,7 @@ private:
 
         auto dummyWindow = glfwCreateWindow(1, 1, "DUMMY WINDOW", nullptr, nullptr);
         auto dummySurface = VkSurfaceKHR {};
-        auto result = glfwCreateWindowSurface(m_instance, dummyWindow, nullptr, &dummySurface);
+        const auto result = glfwCreateWindowSurface(m_instance, dummyWindow, nullptr, &dummySurface);
         if (result != VK_SUCCESS) {
             glfwDestroyWindow(dummyWindow);
             dummyWindow = nullptr;
@@ -1376,7 +1376,7 @@ private:
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
 
         auto commandPool = VkCommandPool {};
-        auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool);
+        const auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
@@ -1462,7 +1462,7 @@ public:
     }
 
     void createGLFWLibrary() {
-        auto result = glfwInit();
+        const auto result = glfwInit();
         if (!result) {
             glfwTerminate();
 
@@ -1792,8 +1792,8 @@ private:
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        auto result = vkCreateBuffer(m_engine->getLogicalDevice(), &bufferInfo, nullptr, &buffer);
-        if (result != VK_SUCCESS) {
+        const auto resultCreateBuffer = vkCreateBuffer(m_engine->getLogicalDevice(), &bufferInfo, nullptr, &buffer);
+        if (resultCreateBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to create buffer!");
         }
 
@@ -1805,8 +1805,8 @@ private:
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        result = vkAllocateMemory(m_engine->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory);
-        if (result != VK_SUCCESS) {
+        const auto resultAllocateMemory = vkAllocateMemory(m_engine->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory);
+        if (resultAllocateMemory != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate buffer memory!");
         }
 
@@ -1829,7 +1829,8 @@ private:
         imageInfo.samples = numSamples;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateImage(m_engine->getLogicalDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
+        const auto resultCreateImage = vkCreateImage(m_engine->getLogicalDevice(), &imageInfo, nullptr, &image);
+        if (resultCreateImage != VK_SUCCESS) {
             throw std::runtime_error("failed to create image!");
         }
 
@@ -1841,7 +1842,8 @@ private:
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(m_engine->getLogicalDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+        const auto resultAllocateMemory = vkAllocateMemory(m_engine->getLogicalDevice(), &allocInfo, nullptr, &imageMemory);
+        if (resultAllocateMemory != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate image memory!");
         }
 
@@ -1975,7 +1977,7 @@ private:
         viewInfo.subresourceRange.layerCount = 1;
 
         auto imageView = VkImageView {};
-        auto result = vkCreateImageView(m_engine->getLogicalDevice(), &viewInfo, nullptr, &imageView);
+        const auto result = vkCreateImageView(m_engine->getLogicalDevice(), &viewInfo, nullptr, &imageView);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture image view!");
         }
@@ -2258,7 +2260,7 @@ private:
         // samplerInfo.maxAnisotropy = 1.0f;
 
         auto textureSampler = VkSampler {};
-        auto result = vkCreateSampler(m_engine->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler);
+        const auto result = vkCreateSampler(m_engine->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
         }
@@ -2387,7 +2389,7 @@ private:
         layoutInfo.pBindings = bindings.data();
 
         auto descriptorSetLayout = VkDescriptorSetLayout {};
-        auto result = vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &descriptorSetLayout);
+        const auto result = vkCreateDescriptorSetLayout(m_engine->getLogicalDevice(), &layoutInfo, nullptr, &descriptorSetLayout);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
@@ -2425,7 +2427,7 @@ private:
         poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
         auto descriptorPool = VkDescriptorPool {};
-        auto result = vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool);
+        const auto result = vkCreateDescriptorPool(m_engine->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
@@ -2442,7 +2444,7 @@ private:
         allocInfo.pSetLayouts = layouts.data();
 
         m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        auto result = vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_descriptorSets.data());
+        const auto result = vkAllocateDescriptorSets(m_engine->getLogicalDevice(), &allocInfo, m_descriptorSets.data());
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
@@ -2495,7 +2497,7 @@ private:
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-        auto result = vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data());
+        const auto result = vkAllocateCommandBuffers(m_engine->getLogicalDevice(), &allocInfo, m_commandBuffers.data());
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
@@ -2592,7 +2594,8 @@ private:
 
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
+        const auto result = vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain);
+        if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
@@ -2682,7 +2685,7 @@ private:
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        auto result = vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass);
+        const auto result = vkCreateRenderPass(m_engine->getLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
@@ -2815,8 +2818,8 @@ private:
         pipelineLayoutInfo.pushConstantRangeCount = 0;    // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        auto result = vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
-        if (result != VK_SUCCESS) {
+        const auto resultCreatePipelineLayout = vkCreatePipelineLayout(m_engine->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
+        if (resultCreatePipelineLayout != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
@@ -2838,7 +2841,7 @@ private:
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
         pipelineInfo.basePipelineIndex = -1;              // Optional
 
-        result = vkCreateGraphicsPipelines(
+        const auto resultCreateGraphicsPipelines = vkCreateGraphicsPipelines(
             m_engine->getLogicalDevice(), 
             VK_NULL_HANDLE, 
             1, 
@@ -2847,7 +2850,7 @@ private:
             &m_graphicsPipeline
         );
         
-        if (result != VK_SUCCESS) {
+        if (resultCreateGraphicsPipelines != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
@@ -2874,7 +2877,7 @@ private:
             framebufferInfo.height = m_swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            auto result = vkCreateFramebuffer(
+            const auto result = vkCreateFramebuffer(
                 m_engine->getLogicalDevice(),
                 &framebufferInfo,
                 nullptr,
@@ -2893,7 +2896,8 @@ private:
         beginInfo.flags = 0;                  // Optional.
         beginInfo.pInheritanceInfo = nullptr; // Optional.
 
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+        const auto resultBeginCommandBuffer = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+        if (resultBeginCommandBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
@@ -2951,7 +2955,8 @@ private:
 
         vkCmdEndRenderPass(commandBuffer);
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        const auto resultEndCommandBuffer = vkEndCommandBuffer(commandBuffer);
+        if (resultEndCommandBuffer != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
     }
@@ -3014,7 +3019,7 @@ private:
         vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex = 0;
-        auto result = vkAcquireNextImageKHR(
+        const auto resultAcquireNextImageKHR = vkAcquireNextImageKHR(
             m_engine->getLogicalDevice(), 
             m_swapChain, 
             UINT64_MAX, 
@@ -3023,10 +3028,10 @@ private:
             &imageIndex
         );
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (resultAcquireNextImageKHR == VK_ERROR_OUT_OF_DATE_KHR) {
             this->recreateSwapChain();
             return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        } else if (resultAcquireNextImageKHR != VK_SUCCESS && resultAcquireNextImageKHR != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
@@ -3052,8 +3057,8 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
-        result = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
-        if (result != VK_SUCCESS) {
+        const auto resultQueueSubmit = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+        if (resultQueueSubmit != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -3068,11 +3073,11 @@ private:
         presentInfo.pSwapchains = swapChains.data();
         presentInfo.pImageIndices = &imageIndex;
 
-        result = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
+        const auto resultQueuePresentKHR = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
+        if (resultQueuePresentKHR == VK_ERROR_OUT_OF_DATE_KHR || resultQueuePresentKHR == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
             m_engine->setFramebufferResized(false);
             this->recreateSwapChain();
-        } else if (result != VK_SUCCESS) {
+        } else if (resultQueuePresentKHR != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
@@ -4079,7 +4084,7 @@ private:
         vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex = 0;
-        auto result = vkAcquireNextImageKHR(
+        const auto result = vkAcquireNextImageKHR(
             m_engine->getLogicalDevice(),
             m_swapChain,
             UINT64_MAX,
@@ -4108,9 +4113,8 @@ private:
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
         };
-        submitInfo = {};
+        submitInfo = VkSubmitInfo {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
         submitInfo.waitSemaphoreCount = 2;
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
@@ -4119,7 +4123,8 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &m_renderFinishedSemaphores[m_currentFrame];
 
-        if (vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
+        const auto resultQueueSubmit = vkQueueSubmit(m_engine->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]);
+        if (resultQueueSubmit != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -4135,12 +4140,11 @@ private:
 
         presentInfo.pImageIndices = &imageIndex;
 
-        result = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
+        const auto resultQueuePresentKHR = vkQueuePresentKHR(m_engine->getPresentQueue(), &presentInfo);
+        if (resultQueuePresentKHR == VK_ERROR_OUT_OF_DATE_KHR || resultQueuePresentKHR == VK_SUBOPTIMAL_KHR || m_engine->hasFramebufferResized()) {
             m_engine->setFramebufferResized(false);
             this->recreateSwapChain();
-        } else if (result != VK_SUCCESS) {
+        } else if (resultQueuePresentKHR != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
