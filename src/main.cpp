@@ -2325,7 +2325,7 @@ private:
         void* data;
         vkMapMemory(m_engine->getLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
         
-        memcpy(data, m_vertices.data(), (size_t) bufferSize);
+        memcpy(data, m_vertices.data(), static_cast<size_t>(bufferSize));
         
         vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
 
@@ -3770,7 +3770,7 @@ private:
 
         void* data;
         vkMapMemory(m_engine->getLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, particles.data(), (size_t)bufferSize);
+        memcpy(data, particles.data(), static_cast<size_t>(bufferSize));
         vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
 
         m_shaderStorageBuffers.resize(MAX_FRAMES_IN_FLIGHT);
