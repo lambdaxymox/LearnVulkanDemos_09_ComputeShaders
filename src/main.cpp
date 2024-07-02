@@ -66,82 +66,6 @@ const bool enableDebuggingExtensions = true;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 
-
-
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        auto bindingDescription = VkVertexInputBindingDescription {};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        auto attributeDescriptions = std::array<VkVertexInputAttributeDescription, 3> {};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-
-    bool operator==(const Vertex& other) const {
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
-    }
-};
-
-namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
-        }
-    };
-}
-
-
-/// @brief The uniform buffer object for distpaching camera data to the GPU.
-///
-/// @note Vulkan expects data to be aligned in a specific way. For example,
-/// let `T` be a data type.
-///
-/// @li If `T` is a scalar, `align(T) == sizeof(T)`
-/// @li If `T` is a scalar, `align(vec2<T>) == 2 * sizeof(T)`
-/// @li If `T` is a scalar, `align(vec3<T>) == 4 * sizeof(T)`
-/// @li If `T` is a scalar, `align(vec4<T>) == 4 * sizeof(T)`
-/// @li If `T` is a scalar, `align(mat4<T>) == 4 * sizeof(T)`
-/// @li If `T` is a structure type, `align(T) == max(align(members(T)))`
-///
-/// In particular, each data type is a nice multiple of the alignment of the largest
-/// scalar type constituting that data type. See the specification
-/// https://registry.khronos.org/vulkan/specs/1.3-extensions/html/chap15.html#interfaces-resources-layout
-/// for more details.
-struct UniformBufferObject {
-    glm::mat4x4 model;
-    glm::mat4x4 view;
-    glm::mat4x4 proj;
-};
-
-
-
-
 using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
 using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
 using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
@@ -1631,6 +1555,75 @@ private:
 };
 
 
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
+
+    static VkVertexInputBindingDescription getBindingDescription() {
+        auto bindingDescription = VkVertexInputBindingDescription {};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        auto attributeDescriptions = std::array<VkVertexInputAttributeDescription, 3> {};
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+        return attributeDescriptions;
+    }
+
+    bool operator==(const Vertex& other) const {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+    }
+};
+
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
+        }
+    };
+}
+
+/// @brief The uniform buffer object for distpaching camera data to the GPU.
+///
+/// @note Vulkan expects data to be aligned in a specific way. For example,
+/// let `T` be a data type.
+///
+/// @li If `T` is a scalar, `align(T) == sizeof(T)`
+/// @li If `T` is a scalar, `align(vec2<T>) == 2 * sizeof(T)`
+/// @li If `T` is a scalar, `align(vec3<T>) == 4 * sizeof(T)`
+/// @li If `T` is a scalar, `align(vec4<T>) == 4 * sizeof(T)`
+/// @li If `T` is a scalar, `align(mat4<T>) == 4 * sizeof(T)`
+/// @li If `T` is a structure type, `align(T) == max(align(members(T)))`
+///
+/// In particular, each data type is a nice multiple of the alignment of the largest
+/// scalar type constituting that data type. See the specification
+/// https://registry.khronos.org/vulkan/specs/1.3-extensions/html/chap15.html#interfaces-resources-layout
+/// for more details.
+struct UniformBufferObject {
+    glm::mat4x4 model;
+    glm::mat4x4 view;
+    glm::mat4x4 proj;
+};
 
 class App {
 public:
