@@ -3385,7 +3385,6 @@ private:
         auto createInfo = VkSwapchainCreateInfoKHR {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = m_engine->getSurface();
-
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -3415,22 +3414,24 @@ private:
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
 
-        const auto result = vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChain);
+        auto swapChain = VkSwapchainKHR {};
+        const auto result = vkCreateSwapchainKHR(m_engine->getLogicalDevice(), &createInfo, nullptr, &swapChain);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), m_swapChain, &imageCount, nullptr);
-        m_swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), m_swapChain, &imageCount, m_swapChainImages.data());
+        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), swapChain, &imageCount, nullptr);
+        auto swapChainImages = std::vector<VkImage> { imageCount, VK_NULL_HANDLE };
+        vkGetSwapchainImagesKHR(m_engine->getLogicalDevice(), swapChain, &imageCount, swapChainImages.data());
 
+        m_swapChain = swapChain;
+        m_swapChainImages = std::move(swapChainImages);
         m_swapChainImageFormat = surfaceFormat.format;
         m_swapChainExtent = extent;
     }
 
     void createImageViews() {
-        m_swapChainImageViews.resize(m_swapChainImages.size());
-
+        auto swapChainImageViews = std::vector<VkImageView> { m_swapChainImages.size(), VK_NULL_HANDLE };
         for (size_t i = 0; i < m_swapChainImages.size(); i++) {
             auto createInfo = VkImageViewCreateInfo {};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -3447,11 +3448,13 @@ private:
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            const auto result = vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &m_swapChainImageViews[i]);
+            const auto result = vkCreateImageView(m_engine->getLogicalDevice(), &createInfo, nullptr, &swapChainImageViews[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
         }
+
+        m_swapChainImageViews = std::move(swapChainImageViews);
     }
 
     void createRenderPass() {
