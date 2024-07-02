@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <fstream>
 #include <chrono>
+#include <random>
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -40,6 +41,8 @@
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
+
+const uint32_t PARTICLE_COUNT = 8192;
 
 const std::string MODEL_PATH = std::string { "assets/viking_room/viking_room.obj" };
 const std::string TEXTURE_PATH = std::string { "assets/viking_room/viking_room.png" };
@@ -114,6 +117,37 @@ namespace std {
 }
 
 
+struct Particle {
+    glm::vec2 position;
+    glm::vec2 velocity;
+    glm::vec4 color;
+
+    static VkVertexInputBindingDescription getBindingDescription() {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Particle);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Particle, position);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Particle, color);
+
+        return attributeDescriptions;
+    }
+};
+
 
 
 /// @brief The uniform buffer object for distpaching camera data to the GPU.
@@ -148,11 +182,11 @@ using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
 
 
 struct QueueFamilyIndices final {
-    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> graphicsAndComputeFamily;
     std::optional<uint32_t> presentFamily;
 
     bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value();
+        return graphicsAndComputeFamily.has_value() && presentFamily.has_value();
     }
 };
 
@@ -506,8 +540,8 @@ public:
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphicsFamily = i;
+            if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                indices.graphicsAndComputeFamily = i;
             }
 
             VkBool32 presentSupport = false;
@@ -731,8 +765,8 @@ public:
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphicsFamily = i;
+            if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                indices.graphicsAndComputeFamily = i;
             }
 
             VkBool32 presentSupport = false;
@@ -775,11 +809,11 @@ public:
         return details;
     }
 
-    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice(const LogicalDeviceSpec& logicalDeviceSpec) {
+    std::tuple<VkDevice, VkQueue, VkQueue, VkQueue> createLogicalDevice(const LogicalDeviceSpec& logicalDeviceSpec) {
         QueueFamilyIndices indices = this->findQueueFamilies(m_physicalDevice, m_surface);
 
         auto uniqueQueueFamilies = std::set<uint32_t> {
-            indices.graphicsFamily.value(), 
+            indices.graphicsAndComputeFamily.value(), 
             indices.presentFamily.value()
         };
         auto queueCreateInfos = std::vector<VkDeviceQueueCreateInfo> {};
@@ -845,12 +879,15 @@ public:
 
 
         VkQueue graphicsQueue = VK_NULL_HANDLE;
-        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &graphicsQueue);
+
+        VkQueue computeQueue = VK_NULL_HANDLE;
+        vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &computeQueue);
         
         VkQueue presentQueue = VK_NULL_HANDLE;
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
-        return std::make_tuple(device, graphicsQueue, presentQueue);
+        return std::make_tuple(device, graphicsQueue, computeQueue, presentQueue);
     }
 private:
     VkPhysicalDevice m_physicalDevice;
@@ -1096,12 +1133,14 @@ public:
         VkPhysicalDevice physicalDevice, 
         VkDevice device, 
         VkQueue graphicsQueue,
+        VkQueue computeQueue,
         VkQueue presentQueue,
         VkCommandPool commandPool
     )   : m_instance { instance }
         , m_physicalDevice { physicalDevice }
         , m_device { device }
         , m_graphicsQueue { graphicsQueue }
+        , m_computeQueue { computeQueue }
         , m_presentQueue { presentQueue }
         , m_commandPool { commandPool }
         , m_shaderModules { std::unordered_set<VkShaderModule> {} }
@@ -1137,6 +1176,10 @@ public:
 
     VkQueue getGraphicsQueue() const {
         return m_graphicsQueue;
+    }
+
+    VkQueue getComputeQueue() const {
+        return m_computeQueue;
     }
 
     VkQueue getPresentQueue() const {
@@ -1209,6 +1252,7 @@ private:
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
+    VkQueue m_computeQueue;
     VkQueue m_presentQueue;
     VkCommandPool m_commandPool;
     VkSurfaceKHR m_surface;
@@ -1265,7 +1309,7 @@ public:
         this->createLogicalDevice();
         this->createCommandPool();
 
-        auto gpuDevice = new GpuDevice { m_instance, m_physicalDevice, m_device, m_graphicsQueue, m_presentQueue, m_commandPool };
+        auto gpuDevice = new GpuDevice { m_instance, m_physicalDevice, m_device, m_graphicsQueue, m_computeQueue, m_presentQueue, m_commandPool };
 
         return gpuDevice;
     }
@@ -1276,6 +1320,7 @@ private:
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkQueue m_graphicsQueue;
+    VkQueue m_computeQueue;
     VkQueue m_presentQueue;
     VkCommandPool m_commandPool;
 
@@ -1290,8 +1335,8 @@ private:
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphicsFamily = i;
+            if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                indices.graphicsAndComputeFamily = i;
             }
 
             VkBool32 presentSupport = false;
@@ -1347,10 +1392,11 @@ private:
         auto logicalDeviceSpecProvider = LogicalDeviceSpecProvider { m_physicalDevice, m_dummySurface };
         auto logicalDeviceSpec = logicalDeviceSpecProvider.createLogicalDeviceSpec();
         auto factory = LogicalDeviceFactory { m_physicalDevice, m_dummySurface, m_infoProvider };
-        auto [device, graphicsQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
+        auto [device, graphicsQueue, computeQueue, presentQueue] = factory.createLogicalDevice(logicalDeviceSpec);
 
         m_device = device;
         m_graphicsQueue = graphicsQueue;
+        m_computeQueue = computeQueue;
         m_presentQueue = presentQueue;
     }
 
@@ -1360,7 +1406,7 @@ private:
         auto poolInfo = VkCommandPoolCreateInfo {};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
 
         VkCommandPool commandPool = VK_NULL_HANDLE;
         auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool);
@@ -1410,6 +1456,10 @@ public:
 
     VkQueue getGraphicsQueue() const {
         return m_gpuDevice->getGraphicsQueue();
+    }
+
+    VkQueue getComputeQueue() const {
+        return m_gpuDevice->getComputeQueue();
     }
 
     VkQueue getPresentQueue() const {
@@ -1522,8 +1572,8 @@ public:
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphicsFamily = i;
+            if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+                indices.graphicsAndComputeFamily = i;
             }
 
             VkBool32 presentSupport = false;
@@ -1612,6 +1662,8 @@ private:
         return newEngine;
     }
 };
+
+
 
 class App {
 public:
@@ -2556,11 +2608,11 @@ private:
 
         QueueFamilyIndices indices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
         auto queueFamilyIndices = std::array<uint32_t, 2> { 
-            indices.graphicsFamily.value(),
+            indices.graphicsAndComputeFamily.value(),
             indices.presentFamily.value()
         };
 
-        if (indices.graphicsFamily != indices.presentFamily) {
+        if (indices.graphicsAndComputeFamily != indices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
