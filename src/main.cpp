@@ -389,7 +389,7 @@ public:
         createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensionNames.size());
         createInfo.ppEnabledExtensionNames = enabledExtensionNames.data();
 
-        VkInstance instance = VK_NULL_HANDLE;
+        auto instance = VkInstance {};
         auto result = vkCreateInstance(&createInfo, nullptr, &instance);
         if (result != VK_SUCCESS) {
             throw std::runtime_error(fmt::format("Failed to create Vulkan instance."));
@@ -838,20 +838,20 @@ public:
             createInfo.enabledLayerCount = 0;
         }
 
-        VkDevice device = VK_NULL_HANDLE;
+        auto device = VkDevice {};
         auto result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &device);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
 
-        VkQueue graphicsQueue = VK_NULL_HANDLE;
+        auto graphicsQueue = VkQueue {};
         vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &graphicsQueue);
 
-        VkQueue computeQueue = VK_NULL_HANDLE;
+        auto computeQueue = VkQueue {};
         vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &computeQueue);
         
-        VkQueue presentQueue = VK_NULL_HANDLE;
+        auto presentQueue = VkQueue {};
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 
         return std::make_tuple(device, graphicsQueue, computeQueue, presentQueue);
@@ -1375,7 +1375,7 @@ private:
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();
 
-        VkCommandPool commandPool = VK_NULL_HANDLE;
+        auto commandPool = VkCommandPool {};
         auto result = vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
@@ -4079,8 +4079,15 @@ private:
         vkWaitForFences(m_engine->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex = 0;
-        VkResult result = vkAcquireNextImageKHR(m_engine->getLogicalDevice(), m_swapChain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
-
+        auto result = vkAcquireNextImageKHR(
+            m_engine->getLogicalDevice(),
+            m_swapChain,
+            UINT64_MAX,
+            m_imageAvailableSemaphores[m_currentFrame],
+            VK_NULL_HANDLE,
+            &imageIndex
+        );
+        
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             this->recreateSwapChain();
             return;
