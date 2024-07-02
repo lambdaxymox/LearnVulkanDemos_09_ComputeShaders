@@ -924,8 +924,8 @@ private:
 
 class SurfaceProvider final {
 public:
-    SurfaceProvider() = delete;
-    SurfaceProvider(VkInstance instance, GLFWwindow* window)
+    explicit SurfaceProvider() = delete;
+    explicit SurfaceProvider(VkInstance instance, GLFWwindow* window)
         : m_instance { instance }
         , m_window { window }
     {
@@ -1747,12 +1747,12 @@ private:
         this->createDescriptorSets();
         this->createCommandBuffers();
         this->createSwapChain();
-        this->createImageViews();
+        this->createSwapChainImageViews();
         this->createRenderPass();
         this->createGraphicsPipeline();
         this->createColorResources();
         this->createDepthResources();
-        this->createFramebuffers();
+        this->createSwapChainFramebuffers();
         this->createSyncObjects();
     }
 
@@ -2617,7 +2617,7 @@ private:
         m_swapChainExtent = extent;
     }
 
-    void createImageViews() {
+    void createSwapChainImageViews() {
         auto swapChainImageViews = std::vector<VkImageView> { m_swapChainImages.size(), VK_NULL_HANDLE };
         for (size_t i = 0; i < m_swapChainImages.size(); i++) {
             auto swapChainImageView = this->createImageView(m_swapChainImages[i], m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
@@ -2880,7 +2880,7 @@ private:
         m_graphicsPipeline = graphicsPipeline;
     }
 
-    void createFramebuffers() {
+    void createSwapChainFramebuffers() {
         auto swapChainFramebuffers = std::vector<VkFramebuffer> { m_swapChainImageViews.size(), VK_NULL_HANDLE };
         for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
             auto attachments = std::array<VkImageView, 3> {
@@ -3144,10 +3144,10 @@ private:
 
         this->cleanupSwapChain();
         this->createSwapChain();
-        this->createImageViews();
+        this->createSwapChainImageViews();
         this->createColorResources();
         this->createDepthResources();
-        this->createFramebuffers();
+        this->createSwapChainFramebuffers();
     }
 };
 
@@ -3265,12 +3265,12 @@ private:
         this->createEngine();
         
         this->createSwapChain();
-        this->createImageViews();
+        this->createSwapChainImageViews();
         this->createRenderPass();
         this->createComputeDescriptorSetLayout();
         this->createGraphicsPipeline();
         this->createComputePipeline();
-        this->createFramebuffers();
+        this->createSwapChainFramebuffers();
         this->createShaderStorageBuffers();
         this->createUniformBuffers();
         this->createDescriptorPool();
@@ -3358,8 +3358,8 @@ private:
         this->cleanupSwapChain();
 
         this->createSwapChain();
-        this->createImageViews();
-        this->createFramebuffers();
+        this->createSwapChainImageViews();
+        this->createSwapChainFramebuffers();
     }
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -3464,7 +3464,7 @@ private:
         m_swapChainExtent = extent;
     }
 
-    void createImageViews() {
+    void createSwapChainImageViews() {
         auto swapChainImageViews = std::vector<VkImageView> { m_swapChainImages.size(), VK_NULL_HANDLE };
         for (size_t i = 0; i < m_swapChainImages.size(); i++) {
             auto createInfo = VkImageViewCreateInfo {};
@@ -3755,7 +3755,7 @@ private:
         m_computePipeline = computePipeline;
     }
 
-    void createFramebuffers() {
+    void createSwapChainFramebuffers() {
         auto swapChainFramebuffers = std::vector<VkFramebuffer> { m_swapChainImageViews.size(), VK_NULL_HANDLE };
         for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
             auto attachments = std::array<VkImageView, 1> {
