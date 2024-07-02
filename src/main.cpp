@@ -3215,8 +3215,6 @@ private:
     std::vector<VkFence> m_computeInFlightFences;
     uint32_t m_currentFrame = 0;
 
-    // bool framebufferResized = false;
-
     float m_lastFrameTime = 0.0f;
     double m_lastTime = 0.0f;
 
