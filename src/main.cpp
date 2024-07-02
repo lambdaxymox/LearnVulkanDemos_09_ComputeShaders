@@ -47,20 +47,20 @@ const uint32_t PARTICLE_COUNT = 8192;
 const std::string MODEL_PATH = std::string { "assets/viking_room/viking_room.obj" };
 const std::string TEXTURE_PATH = std::string { "assets/viking_room/viking_room.png" };
 
-const std::vector<std::string> validationLayers = std::vector<std::string> { 
+const std::vector<std::string> VALIDATION_LAYERS = std::vector<std::string> { 
     VulkanEngine::Constants::VK_LAYER_KHRONOS_validation
 };
 
-const std::vector<const char*> deviceExtensions = std::vector<const char*> {
+const std::vector<const char*> DEVICE_EXTENSIONS = std::vector<const char*> {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
-const bool enableDebuggingExtensions = false;
+const bool ENABLE_VALIDATION_LAYERS = false;
+const bool ENABLE_DEBUGGING_EXTENSIONS = false;
 #else
-const bool enableValidationLayers = true;
-const bool enableDebuggingExtensions = true;
+const bool ENABLE_VALIDATION_LAYERS = true;
+const bool ENABLE_DEBUGGING_EXTENSIONS = true;
 #endif
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -753,10 +753,10 @@ public:
         createInfo.enabledExtensionCount = enabledExtensions.size();
         createInfo.ppEnabledExtensionNames = enabledExtensions.data();
         
-        auto validationLayersCStrings = LogicalDeviceFactory::convertToCStrings(validationLayers);
+        auto validationLayersCStrings = LogicalDeviceFactory::convertToCStrings(VALIDATION_LAYERS);
 
-        if (enableValidationLayers) {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        if (ENABLE_VALIDATION_LAYERS) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
             createInfo.ppEnabledLayerNames = validationLayersCStrings.data();
         } else {
             createInfo.enabledLayerCount = 0;
