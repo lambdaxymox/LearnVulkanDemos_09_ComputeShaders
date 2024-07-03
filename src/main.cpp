@@ -34,7 +34,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-
 #include <stb/stb_image.h>
 #include <tiny_obj_loader/tiny_obj_loader.h>
 
@@ -1914,37 +1913,52 @@ private:
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
         const VkCommandBuffer commandBuffer = this->beginSingleTimeCommands();
 
-        auto barrier = VkImageMemoryBarrier {};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = oldLayout;
-        barrier.newLayout = newLayout;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = mipLevels;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+        const auto [srcAccessMask, dstAccessMask] = [oldLayout, newLayout]() -> std::tuple<VkAccessFlags, VkAccessFlags> {
+            if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                return std::make_tuple(
+                    0, 
+                    VK_ACCESS_TRANSFER_WRITE_BIT
+                );
+            } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                return std::make_tuple(
+                    VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_SHADER_READ_BIT
+                );
+            } else {
+                throw std::invalid_argument("unsupported layout transition!");
+            }
+        }();
+        const auto [sourceStage, destinationStage] = [oldLayout, newLayout]() -> std::tuple<VkPipelineStageFlags, VkPipelineStageFlags> {
+            if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                return std::make_tuple(
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT
+                );
+            } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                return std::make_tuple(
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                );
+            } else {
+                throw std::invalid_argument("unsupported layout transition!");
+            }
+        }();
 
-        auto sourceStage = VkPipelineStageFlags {};
-        auto destinationStage = VkPipelineStageFlags {};
-
-        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-            barrier.srcAccessMask = 0;
-            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } else {
-            throw std::invalid_argument("unsupported layout transition!");
-        }
+        const auto barrier = VkImageMemoryBarrier {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .oldLayout = oldLayout,
+            .newLayout = newLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = mipLevels,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+            .srcAccessMask = srcAccessMask,
+            .dstAccessMask = dstAccessMask,
+        };
 
         vkCmdPipelineBarrier(
             commandBuffer,
@@ -2119,19 +2133,20 @@ private:
                 1, &barrier
             );
 
-            auto blit = VkImageBlit {};
-            blit.srcOffsets[0] = { 0, 0, 0 };
-            blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
-            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blit.srcSubresource.mipLevel = i - 1;
-            blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
-            blit.dstOffsets[0] = { 0, 0, 0 };
-            blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
-            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blit.dstSubresource.mipLevel = i;
-            blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
+            const auto blit = VkImageBlit {
+                .srcOffsets[0] = { 0, 0, 0 },
+                .srcOffsets[1] = { mipWidth, mipHeight, 1 },
+                .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .srcSubresource.mipLevel = i - 1,
+                .srcSubresource.baseArrayLayer = 0,
+                .srcSubresource.layerCount = 1,
+                .dstOffsets[0] = { 0, 0, 0 },
+                .dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 },
+                .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .dstSubresource.mipLevel = i,
+                .dstSubresource.baseArrayLayer = 0,
+                .dstSubresource.layerCount = 1,
+            };
 
             vkCmdBlitImage(
                 commandBuffer,
@@ -2154,8 +2169,13 @@ private:
                 1, &barrier
             );
 
-            if (mipWidth > 1) mipWidth /= 2;
-            if (mipHeight > 1) mipHeight /= 2;
+            if (mipWidth > 1) {
+                mipWidth /= 2;
+            }
+
+            if (mipHeight > 1) {
+                mipHeight /= 2;
+            }
         }
 
         barrier.subresourceRange.baseMipLevel = mipLevels - 1;
@@ -3914,10 +3934,11 @@ private:
         // Initial particle positions on a circle
         auto particles = std::vector<Particle> { PARTICLE_COUNT };
         for (auto& particle : particles) {
-            float r = 0.25f * sqrt(rndDist(rndEngine));
-            float theta = rndDist(rndEngine) * 2.0f * 3.14159265358979323846f;
-            float x = r * cos(theta) * HEIGHT / WIDTH;
-            float y = r * sin(theta);
+            const float r = 0.25f * glm::sqrt(rndDist(rndEngine));
+            const float theta = rndDist(rndEngine) * 2.0f * glm::pi<float>();
+            const float x = r * glm::cos(theta) * HEIGHT / WIDTH;
+            const float y = r * glm::sin(theta);
+
             particle.position = glm::vec2(x, y);
             particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
             particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
