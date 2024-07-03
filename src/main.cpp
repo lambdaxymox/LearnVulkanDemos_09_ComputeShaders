@@ -725,16 +725,6 @@ public:
                 return VK_FALSE;
             }
         }();
-        auto deviceFeatures = VkPhysicalDeviceFeatures {};
-        deviceFeatures.samplerAnisotropy = requireSamplerAnisotropy;
-
-        auto createInfo = VkDeviceCreateInfo {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-        createInfo.pQueueCreateInfos = queueCreateInfos.data();
-        
-        createInfo.pEnabledFeatures = &deviceFeatures;
-
         auto deviceExtensionProperties = m_infoProvider->getAvailableVulkanDeviceExtensions(m_physicalDevice);
         auto missingExtensions = m_infoProvider->detectMissingRequiredDeviceExtensions(
             deviceExtensionProperties, 
@@ -750,24 +740,32 @@ public:
             throw std::runtime_error(errorMessage);
         }
         auto enabledExtensions = LogicalDeviceFactory::convertToCStrings(logicalDeviceSpec.requiredExtensions());
+        auto validationLayersCStrings = []() {
+            if (ENABLE_VALIDATION_LAYERS) {
+                return LogicalDeviceFactory::convertToCStrings(VALIDATION_LAYERS);
+            } else {
+                return std::vector<const char*> {};
+            }
+        }();
+
+        auto deviceFeatures = VkPhysicalDeviceFeatures {};
+        deviceFeatures.samplerAnisotropy = requireSamplerAnisotropy;
+
+        auto createInfo = VkDeviceCreateInfo {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.pEnabledFeatures = &deviceFeatures;
         createInfo.enabledExtensionCount = enabledExtensions.size();
         createInfo.ppEnabledExtensionNames = enabledExtensions.data();
-        
-        auto validationLayersCStrings = LogicalDeviceFactory::convertToCStrings(VALIDATION_LAYERS);
-
-        if (ENABLE_VALIDATION_LAYERS) {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-            createInfo.ppEnabledLayerNames = validationLayersCStrings.data();
-        } else {
-            createInfo.enabledLayerCount = 0;
-        }
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayersCStrings.size());
+        createInfo.ppEnabledLayerNames = validationLayersCStrings.data();
 
         auto device = VkDevice {};
         const auto result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &device);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
-
 
         auto graphicsQueue = VkQueue {};
         vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &graphicsQueue);
@@ -2569,36 +2567,42 @@ private:
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
+        QueueFamilyIndices indices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
+        auto queueFamilyIndices = std::array<uint32_t, 2> { 
+            indices.graphicsAndComputeFamily.value(),
+            indices.presentFamily.value()
+        };
+        auto imageSharingMode = [&indices]() {
+            if (indices.graphicsAndComputeFamily != indices.presentFamily) {
+                return VK_SHARING_MODE_CONCURRENT;
+            } else {
+                return VK_SHARING_MODE_EXCLUSIVE;
+            }
+        }();
+        auto [queueFamilyIndicesPtr, queueFamilyIndexCount] = [&indices, &queueFamilyIndices]() {
+            if (indices.graphicsAndComputeFamily != indices.presentFamily) {
+                return std::make_tuple(queueFamilyIndices.data(), queueFamilyIndices.size());
+            } else {
+                return std::make_tuple(static_cast<uint32_t*>(nullptr), static_cast<size_t>(0));
+            }
+        }();
+
         auto createInfo = VkSwapchainCreateInfoKHR {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = m_engine->getSurface();
-
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = swapChainExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-        QueueFamilyIndices indices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
-        auto queueFamilyIndices = std::array<uint32_t, 2> { 
-            indices.graphicsAndComputeFamily.value(),
-            indices.presentFamily.value()
-        };
-
-        if (indices.graphicsAndComputeFamily != indices.presentFamily) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        } else {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
-
+        createInfo.imageSharingMode = imageSharingMode;
+        createInfo.queueFamilyIndexCount = queueFamilyIndexCount;
+        createInfo.pQueueFamilyIndices = queueFamilyIndicesPtr;
         createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
         auto swapChain = VkSwapchainKHR {};
@@ -3414,6 +3418,26 @@ private:
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
+        QueueFamilyIndices indices = m_engine->findQueueFamilies(m_engine->getPhysicalDevice(), m_engine->getSurface());
+        auto queueFamilyIndices = std::array<uint32_t, 2> { 
+            indices.graphicsAndComputeFamily.value(),
+            indices.presentFamily.value()
+        };
+        auto imageSharingMode = [&indices]() {
+            if (indices.graphicsAndComputeFamily != indices.presentFamily) {
+                return VK_SHARING_MODE_CONCURRENT;
+            } else {
+                return VK_SHARING_MODE_EXCLUSIVE;
+            }
+        }();
+        auto [queueFamilyIndicesPtr, queueFamilyIndexCount] = [&indices, &queueFamilyIndices]() {
+            if (indices.graphicsAndComputeFamily != indices.presentFamily) {
+                return std::make_tuple(queueFamilyIndices.data(), queueFamilyIndices.size());
+            } else {
+                return std::make_tuple(static_cast<uint32_t*>(nullptr), static_cast<size_t>(0));
+            }
+        }();
+
         auto createInfo = VkSwapchainCreateInfoKHR {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = m_engine->getSurface();
@@ -3423,24 +3447,9 @@ private:
         createInfo.imageExtent = swapChainExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-        QueueFamilyIndices indices = m_engine->findQueueFamilies(
-            m_engine->getPhysicalDevice(),
-            m_engine->getSurface()
-        );
-        auto queueFamilyIndices = std::array<uint32_t, 2> { 
-            indices.graphicsAndComputeFamily.value(),
-            indices.presentFamily.value()
-        };
-
-        if (indices.graphicsAndComputeFamily != indices.presentFamily) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        } else {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
-
+        createInfo.imageSharingMode = imageSharingMode;
+        createInfo.queueFamilyIndexCount = queueFamilyIndexCount;
+        createInfo.pQueueFamilyIndices = queueFamilyIndicesPtr;
         createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = presentMode;
