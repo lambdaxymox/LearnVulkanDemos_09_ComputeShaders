@@ -1016,6 +1016,33 @@ private:
         };
     }
 };
+/*
+class Buffer final {
+    explicit Buffer(const BufferSpec& bufferSpec) = default;
+
+    uint32_t stride() const {
+
+    }
+
+    uint32_t size() const {
+
+    }
+
+    uint32_t elementCount() const {
+        
+    }
+private:
+    VkBuffer m_buffer;
+    VkDeviceMemory m_bufferMemory;
+    BufferSpec m_bufferSpec;
+};
+
+struct BufferSpec {
+    VkDeviceSize size;
+    VkBufferUsageFlags usage;
+    VkMemoryPropertyFlags properties;
+};
+*/
 
 class GpuDevice final {
 public:
@@ -1143,6 +1170,42 @@ public:
 
         return shaderModule;
     }
+
+    /*
+    Buffer createBuffer(const BufferSpec& bufferSpec) {
+        const auto bufferInfo = VkBufferCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = bufferSpec.size,
+            .usage = bufferSpec.usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        };
+
+        auto buffer = VkBuffer {};
+        const auto resultCreateBuffer = vkCreateBuffer(m_device, &bufferInfo, nullptr, &buffer);
+        if (resultCreateBuffer != VK_SUCCESS) {
+            throw std::runtime_error("failed to create buffer!");
+        }
+
+        auto memRequirements = VkMemoryRequirements {};
+        vkGetBufferMemoryRequirements(m_device, buffer, &memRequirements);
+
+        const auto allocInfo = VkMemoryAllocateInfo {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = this->findMemoryType(memRequirements.memoryTypeBits, bufferSpec.properties),
+        };
+
+        auto bufferMemory = VkDeviceMemory {};
+        const auto resultAllocateMemory = vkAllocateMemory(m_device, &allocInfo, nullptr, &bufferMemory);
+        if (resultAllocateMemory != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate buffer memory!");
+        }
+
+        vkBindBufferMemory(m_device, buffer, bufferMemory, 0);
+
+        return Buffer { .buffer = buffer, .bufferMemory = bufferMemory };
+    }
+    */
 private:
     VkInstance m_instance;
     VkPhysicalDevice m_physicalDevice;
@@ -1182,6 +1245,19 @@ private:
         stream.close();
 
         return shader;
+    }
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+        auto memProperties = VkPhysicalDeviceMemoryProperties {};
+        vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
+
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+
+        throw std::runtime_error("failed to find suitable memory type!");
     }
 };
 
@@ -1531,6 +1607,12 @@ public:
     VkShaderModule createShaderModule(std::vector<char>& code) {
         return m_gpuDevice->createShaderModule(code);
     }
+
+    /*
+    Buffer createBuffer(const BufferSpec& bufferSpec) {
+        return m_gpuDevice->createBuffer(bufferSpec);
+    }
+    */
 private:
     PlatformInfoProvider* m_infoProvider;
     SystemFactory* m_systemFactory;
@@ -1652,6 +1734,7 @@ public:
 private:
     Engine* m_engine;
 
+
     VkSwapchainKHR m_swapChain;
     std::vector<VkImage> m_swapChainImages;
     VkFormat m_swapChainImageFormat;
@@ -1672,6 +1755,7 @@ private:
     VkImage m_depthImage;
     VkDeviceMemory m_depthImageMemory;
     VkImageView m_depthImageView;
+
 
     VkPipelineLayout m_graphicsPipelineLayout;
     VkPipeline m_graphicsPipeline;
@@ -1715,6 +1799,7 @@ private:
     void initEngine() {
         this->createEngine();
 
+
         this->createSwapChain();
         this->createSwapChainImageViews();
         this->createRenderPass();
@@ -1722,17 +1807,21 @@ private:
         this->createDepthResources();
         this->createSwapChainFramebuffers();
         this->createGraphicsSyncObjects();
+
         
         this->createDescriptorPool();
-
         this->createTextureImage();
         this->createTextureImageView();
         this->createTextureSampler();
         this->loadModel();
+
+
         this->createVertexBuffer();
         this->createIndexBuffer();
-        this->createDescriptorSetLayout();
         this->createUniformBuffers();
+
+
+        this->createDescriptorSetLayout();
         this->createDescriptorSets();
         this->createCommandBuffers();
         this->createGraphicsPipeline();
@@ -1805,25 +1894,34 @@ private:
             delete m_engine;
         }
     }
+    /*
+    void cleanup() {
+        if (m_engine->isInitialized()) {
+            vkDestroyDescriptorPool(m_engine->getLogicalDevice(), m_descriptorPool, nullptr);
 
-    void recreateSwapChain() {
-        int width = 0;
-        int height = 0;
-        glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
-        while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
-            glfwWaitEvents();
+            vkDestroySampler(m_engine->getLogicalDevice(), m_textureSampler, nullptr);
+            vkDestroyImageView(m_engine->getLogicalDevice(), m_textureImageView, nullptr);
+
+            vkDestroyImage(m_engine->getLogicalDevice(), m_textureImage, nullptr);
+            vkFreeMemory(m_engine->getLogicalDevice(), m_textureImageMemory, nullptr);
+
+            vkDestroyDescriptorSetLayout(m_engine->getLogicalDevice(), m_descriptorSetLayout, nullptr);
+
+            vkDestroyBuffer(m_engine->getLogicalDevice(), m_indexBuffer, nullptr);
+            vkFreeMemory(m_engine->getLogicalDevice(), m_indexBufferMemory, nullptr);
+
+            vkDestroyBuffer(m_engine->getLogicalDevice(), m_vertexBuffer, nullptr);
+            vkFreeMemory(m_engine->getLogicalDevice(), m_vertexBufferMemory, nullptr);
+
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroyBuffer(m_engine->getLogicalDevice(), m_uniformBuffers[i], nullptr);
+                vkFreeMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], nullptr);
+            }
+
+            delete m_engine;
         }
-
-        vkDeviceWaitIdle(m_engine->getLogicalDevice());
-
-        this->cleanupSwapChain();
-        this->createSwapChain();
-        this->createSwapChainImageViews();
-        this->createColorResources();
-        this->createDepthResources();
-        this->createSwapChainFramebuffers();
     }
+    */
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for (const auto& availableFormat : availableFormats) {
@@ -2257,6 +2355,25 @@ private:
         m_inFlightFences = std::move(inFlightFences);
     }
 
+    void recreateSwapChain() {
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
+            glfwWaitEvents();
+        }
+
+        vkDeviceWaitIdle(m_engine->getLogicalDevice());
+
+        this->cleanupSwapChain();
+        this->createSwapChain();
+        this->createSwapChainImageViews();
+        this->createColorResources();
+        this->createDepthResources();
+        this->createSwapChainFramebuffers();
+    }
+
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         auto memProperties = VkPhysicalDeviceMemoryProperties {};
@@ -2270,6 +2387,7 @@ private:
 
         throw std::runtime_error("failed to find suitable memory type!");
     }
+
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         const auto bufferInfo = VkBufferCreateInfo {
@@ -2300,6 +2418,8 @@ private:
 
         vkBindBufferMemory(m_engine->getLogicalDevice(), buffer, bufferMemory, 0);
     }
+
+
 
     /*
     void createImage(
@@ -2505,6 +2625,7 @@ private:
         return imageView;
     }
     */
+
 
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
         // Check if image format supports linear blitting.
@@ -2764,6 +2885,45 @@ private:
         m_indices = std::move(indices);
     }
 
+    void _createVertexBuffer(VkDeviceSize bufferSize) {
+        const VkBufferUsageFlags vertexBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        const VkMemoryPropertyFlags vertexBufferPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        auto vertexBuffer = VkBuffer {};
+        auto vertexBufferMemory = VkDeviceMemory {};
+        this->createBuffer(bufferSize, vertexBufferUsageFlags, vertexBufferPropertyFlags, vertexBuffer, vertexBufferMemory);
+
+        m_vertexBuffer = vertexBuffer;
+        m_vertexBufferMemory = vertexBufferMemory;
+    }
+
+    void _uploadVertexBuffer(const std::vector<Vertex>& vertices) {
+        const auto bufferSize = VkDeviceSize { sizeof(vertices[0]) * vertices.size() };
+
+        auto stagingBuffer = VkBuffer {};
+        auto stagingBufferMemory = VkDeviceMemory {};
+        const VkBufferUsageFlags stagingBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        const VkMemoryPropertyFlags stagingBufferPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        this->createBuffer(bufferSize, stagingBufferUsageFlags, stagingBufferPropertyFlags, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(m_engine->getLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+        
+        memcpy(data, m_vertices.data(), static_cast<size_t>(bufferSize));
+        
+        vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
+
+        this->copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
+
+        vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
+        vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
+    }
+
+    void createVertexBuffer() {
+        this->_createVertexBuffer(sizeof(m_vertices[0]) * m_vertices.size());
+        this->_uploadVertexBuffer(m_vertices);
+    }
+
+    /*
     void createVertexBuffer() {
         const auto bufferSize = VkDeviceSize { sizeof(m_vertices[0]) * m_vertices.size() };
 
@@ -2782,13 +2942,7 @@ private:
         
         vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
 
-        const VkBufferUsageFlags vertexBufferUsageFlags = 
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        const VkMemoryPropertyFlags vertexBufferPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        auto vertexBuffer = VkBuffer {};
-        auto vertexBufferMemory = VkDeviceMemory {};
-        this->createBuffer(bufferSize, vertexBufferUsageFlags, vertexBufferPropertyFlags, vertexBuffer, vertexBufferMemory);
+        
 
         this->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
@@ -2798,7 +2952,45 @@ private:
         m_vertexBuffer = vertexBuffer;
         m_vertexBufferMemory = vertexBufferMemory;
     }
+    */
 
+    void _createIndexBuffer(VkDeviceSize bufferSize) {
+        const VkBufferUsageFlags vertexBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        const VkMemoryPropertyFlags vertexBufferPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        auto indexBuffer = VkBuffer {};
+        auto indexBufferMemory = VkDeviceMemory {};
+        this->createBuffer(bufferSize, vertexBufferUsageFlags, vertexBufferPropertyFlags, indexBuffer, indexBufferMemory);
+
+        m_indexBuffer = indexBuffer;
+        m_indexBufferMemory = indexBufferMemory;
+    }
+
+    void _uploadIndexBuffer(const std::vector<uint32_t>& indices) {
+        const auto bufferSize = VkDeviceSize { sizeof(indices[0]) * indices.size() };
+
+        auto stagingBuffer = VkBuffer {};
+        auto stagingBufferMemory = VkDeviceMemory {};
+        const VkBufferUsageFlags stagingBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        const VkMemoryPropertyFlags stagingBufferPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        this->createBuffer(bufferSize, stagingBufferUsageFlags, stagingBufferPropertyFlags, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(m_engine->getLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, m_indices.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
+
+        this->copyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
+
+        vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
+        vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
+    }
+
+    void createIndexBuffer() {
+        this->_createIndexBuffer(sizeof(m_indices[0]) * m_indices.size());
+        this->_uploadIndexBuffer(m_indices);
+    }
+
+    /*
     void createIndexBuffer() {
         const auto bufferSize = VkDeviceSize { sizeof(m_indices[0]) * m_indices.size() };
 
@@ -2833,6 +3025,72 @@ private:
         m_indexBuffer = indexBuffer;
         m_indexBufferMemory = indexBufferMemory;
     }
+    */
+
+    void _createUniformBuffer(VkDeviceSize bufferSize, VkBuffer& uniformBuffer, VkDeviceMemory& uniformBufferMemory, void*& uniformBufferMapped) {
+        const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        const VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        this->createBuffer(
+            bufferSize,
+            usageFlags,
+            propertyFlags,
+            uniformBuffer,
+            uniformBufferMemory
+        );
+            
+        vkMapMemory(m_engine->getLogicalDevice(), uniformBufferMemory, 0, bufferSize, 0, &uniformBufferMapped);
+    }
+
+    void _createUniformBuffers(VkDeviceSize bufferSize) {
+        auto uniformBuffers = std::vector<VkBuffer> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
+        auto uniformBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
+        auto uniformBuffersMapped = std::vector<void*> { MAX_FRAMES_IN_FLIGHT, nullptr };
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            this->_createUniformBuffer(
+                bufferSize,
+                uniformBuffers[i],
+                uniformBuffersMemory[i],
+                uniformBuffersMapped[i]
+            );
+        }
+
+        m_uniformBuffers = std::move(uniformBuffers);
+        m_uniformBuffersMemory = std::move(uniformBuffersMemory);
+        m_uniformBuffersMapped = std::move(uniformBuffersMapped);
+    }
+
+    void createUniformBuffers() {
+        this->_createUniformBuffers(sizeof(UniformBufferObject));
+    }
+
+    /*
+    void createUniformBuffers() {
+        const auto bufferSize = VkDeviceSize { sizeof(UniformBufferObject) };
+
+        auto uniformBuffers = std::vector<VkBuffer> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
+        auto uniformBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
+        auto uniformBuffersMapped = std::vector<void*> { MAX_FRAMES_IN_FLIGHT, nullptr };
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            const VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+            this->createBuffer(
+                bufferSize,
+                usageFlags,
+                propertyFlags,
+                uniformBuffers[i],
+                uniformBuffersMemory[i]
+            );
+            
+            vkMapMemory(m_engine->getLogicalDevice(), uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        }
+
+        m_uniformBuffers = std::move(uniformBuffers);
+        m_uniformBuffersMemory = std::move(uniformBuffersMemory);
+        m_uniformBuffersMapped = std::move(uniformBuffersMapped);
+    }
+    */
 
     void createDescriptorSetLayout() {
         const auto uboLayoutBinding = VkDescriptorSetLayoutBinding {
@@ -2863,28 +3121,6 @@ private:
         }
 
         m_descriptorSetLayout = descriptorSetLayout;
-    }
-
-    void createUniformBuffers() {
-        const auto bufferSize = VkDeviceSize { sizeof(UniformBufferObject) };
-
-        auto uniformBuffers = std::vector<VkBuffer> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
-        auto uniformBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
-        auto uniformBuffersMapped = std::vector<void*> { MAX_FRAMES_IN_FLIGHT, nullptr };
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-            const VkMemoryPropertyFlags propertyFlags = 
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | 
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-            this->createBuffer(bufferSize, usageFlags, propertyFlags, uniformBuffers[i], uniformBuffersMemory[i]);
-            
-            vkMapMemory(m_engine->getLogicalDevice(), uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
-        }
-
-        m_uniformBuffers = std::move(uniformBuffers);
-        m_uniformBuffersMemory = std::move(uniformBuffersMemory);
-        m_uniformBuffersMapped = std::move(uniformBuffersMapped);
     }
 
     void createDescriptorPool() {
@@ -3410,6 +3646,7 @@ public:
 private:
     Engine* m_engine;
 
+
     VkSwapchainKHR m_swapChain;
     std::vector<VkImage> m_swapChainImages;
     VkFormat m_swapChainImageFormat;
@@ -3422,6 +3659,7 @@ private:
     std::vector<VkFence> m_inFlightFences;
 
     VkRenderPass m_renderPass;
+
     
     VkPipelineLayout m_graphicsPipelineLayout;
     VkPipeline m_graphicsPipeline;
@@ -3464,6 +3702,7 @@ private:
     void initEngine() {
         this->createEngine();
         
+
         this->createSwapChain();
         this->createSwapChainImageViews();
         this->createRenderPass();
@@ -3472,13 +3711,17 @@ private:
         this->createSwapChainFramebuffers();
         this->createGraphicsSyncObjects();
 
-        this->createDescriptorPool();
 
+        this->createDescriptorPool();
         this->createComputeDescriptorSetLayout();
         this->createGraphicsPipeline();
         this->createComputePipeline();
+
+
         this->createShaderStorageBuffers();
         this->createUniformBuffers();
+
+        
         this->createComputeDescriptorSets();
         this->createCommandBuffers();
         this->createComputeCommandBuffers();
@@ -3499,6 +3742,7 @@ private:
         vkDeviceWaitIdle(m_engine->getLogicalDevice());
     }
 
+
     void cleanupSwapChain() {
         for (auto framebuffer : m_swapChainFramebuffers) {
             vkDestroyFramebuffer(m_engine->getLogicalDevice(), framebuffer, nullptr);
@@ -3510,6 +3754,7 @@ private:
 
         vkDestroySwapchainKHR(m_engine->getLogicalDevice(), m_swapChain, nullptr);
     }
+
 
     void cleanup() {
         if (m_engine->isInitialized()) {
@@ -3549,23 +3794,39 @@ private:
         }
     }
 
-    void recreateSwapChain() {
-        int width = 0;
-        int height = 0;
-        glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
-        while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
-            glfwWaitEvents();
+    /*
+    void cleanup() {
+        if (m_engine->isInitialized()) {
+            vkDestroyPipeline(m_engine->getLogicalDevice(), m_graphicsPipeline, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_graphicsPipelineLayout, nullptr);
+
+            vkDestroyPipeline(m_engine->getLogicalDevice(), m_computePipeline, nullptr);
+            vkDestroyPipelineLayout(m_engine->getLogicalDevice(), m_computePipelineLayout, nullptr);
+
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroyBuffer(m_engine->getLogicalDevice(), m_uniformBuffers[i], nullptr);
+                vkFreeMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], nullptr);
+            }
+
+            vkDestroyDescriptorPool(m_engine->getLogicalDevice(), m_descriptorPool, nullptr);
+      
+            vkDestroyDescriptorSetLayout(m_engine->getLogicalDevice(), m_computeDescriptorSetLayout, nullptr);
+
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroyBuffer(m_engine->getLogicalDevice(), m_shaderStorageBuffers[i], nullptr);
+                vkFreeMemory(m_engine->getLogicalDevice(), m_shaderStorageBuffersMemory[i], nullptr);
+            }
+
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vkDestroySemaphore(m_engine->getLogicalDevice(), m_computeFinishedSemaphores[i], nullptr);
+                vkDestroyFence(m_engine->getLogicalDevice(), m_computeInFlightFences[i], nullptr);
+            }
+
+            delete m_engine;
         }
-
-        vkDeviceWaitIdle(m_engine->getLogicalDevice());
-
-        this->cleanupSwapChain();
-
-        this->createSwapChain();
-        this->createSwapChainImageViews();
-        this->createSwapChainFramebuffers();
     }
+    */
+
 
 
     VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -3831,6 +4092,26 @@ private:
         m_inFlightFences = std::move(inFlightFences);
     }
 
+    void recreateSwapChain() {
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(m_engine->getWindow(), &width, &height);
+            glfwWaitEvents();
+        }
+
+        vkDeviceWaitIdle(m_engine->getLogicalDevice());
+
+        this->cleanupSwapChain();
+
+        this->createSwapChain();
+        this->createSwapChainImageViews();
+        this->createSwapChainFramebuffers();
+    }
+
+
+
     void createComputeDescriptorSetLayout() {
         const auto layoutBindings = std::array<VkDescriptorSetLayoutBinding, 3> {
             VkDescriptorSetLayoutBinding {
@@ -4070,6 +4351,90 @@ private:
         m_computePipeline = computePipeline;
     }
 
+
+
+
+    void _createShaderStorageBuffer(VkDeviceSize bufferSize, VkBuffer& storageBuffer, VkDeviceMemory& storageBufferMemory) {
+        const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        const VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        this->createBuffer(
+            bufferSize,
+            usageFlags,
+            propertyFlags,
+            storageBuffer,
+            storageBufferMemory
+        );
+    }
+
+    void _createShaderStorageBuffers(VkDeviceSize bufferSize) {
+        auto shaderStorageBuffers = std::vector<VkBuffer> { MAX_FRAMES_IN_FLIGHT };
+        auto shaderStorageBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT };
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            this->_createShaderStorageBuffer(bufferSize, shaderStorageBuffers[i], shaderStorageBuffersMemory[i]);
+        }
+
+        m_shaderStorageBuffers = std::move(shaderStorageBuffers);
+        m_shaderStorageBuffersMemory = std::move(shaderStorageBuffersMemory);
+    }
+
+    void __uploadShaderStorageBuffers(
+        const std::vector<Particle>& particles,
+        const std::vector<VkBuffer>& shaderStorageBuffers
+    ) {
+        const auto bufferSize = VkDeviceSize { sizeof(Particle) * particles.size() };
+
+        // Create a staging buffer used to upload data to the gpu
+        auto stagingBuffer = VkBuffer {};
+        auto stagingBufferMemory = VkDeviceMemory {};
+        this->createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer,
+            stagingBufferMemory
+        );
+
+        void* data;
+        vkMapMemory(m_engine->getLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, particles.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            this->copyBuffer(stagingBuffer, shaderStorageBuffers[i], bufferSize);
+        }
+
+        vkDestroyBuffer(m_engine->getLogicalDevice(), stagingBuffer, nullptr);
+        vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
+    }
+
+    void _uploadShaderStorageBuffers(const std::vector<VkBuffer>& shaderStorageBuffers) {
+        // Initialize particles.
+        auto rndEngine = std::default_random_engine { (unsigned) time(nullptr) };
+        auto rndDist = std::uniform_real_distribution<float> { 0.0f, 1.0f };
+
+        // Initial particle positions on a circle
+        auto particles = std::vector<Particle> { PARTICLE_COUNT };
+        for (auto& particle : particles) {
+            const float r = 0.25f * glm::sqrt(rndDist(rndEngine));
+            const float theta = rndDist(rndEngine) * 2.0f * glm::pi<float>();
+            const float x = r * glm::cos(theta) * HEIGHT / WIDTH;
+            const float y = r * glm::sin(theta);
+
+            particle.position = glm::vec2(x, y);
+            particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
+            particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
+        }
+
+        this->__uploadShaderStorageBuffers(particles, shaderStorageBuffers);
+    }
+
+    void createShaderStorageBuffers() {
+        this->_createShaderStorageBuffers(sizeof(Particle) * PARTICLE_COUNT);
+        this->_uploadShaderStorageBuffers(m_shaderStorageBuffers);
+    }
+
+    /*   
     void createShaderStorageBuffers() {
         // Initialize particles.
         auto rndEngine = std::default_random_engine { (unsigned) time(nullptr) };
@@ -4111,13 +4476,18 @@ private:
 
         // Copy initial particle data to all storage buffers
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            const VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
             this->createBuffer(
                 bufferSize,
-                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                usageFlags,
+                propertyFlags,
                 shaderStorageBuffers[i],
                 shaderStorageBuffersMemory[i]
             );
+        }
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             this->copyBuffer(stagingBuffer, shaderStorageBuffers[i], bufferSize);
         }
 
@@ -4127,7 +4497,48 @@ private:
         m_shaderStorageBuffers = std::move(shaderStorageBuffers);
         m_shaderStorageBuffersMemory = std::move(shaderStorageBuffersMemory);
     }
+    */
+    
 
+
+    void createUniformBuffer(VkDeviceSize bufferSize, VkBuffer& uniformBuffer, VkDeviceMemory& uniformBufferMemory, void*& uniformBufferMapped) {
+        const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        const VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        this->createBuffer(
+            bufferSize,
+            usageFlags,
+            propertyFlags,
+            uniformBuffer,
+            uniformBufferMemory
+        );
+            
+        vkMapMemory(m_engine->getLogicalDevice(), uniformBufferMemory, 0, bufferSize, 0, &uniformBufferMapped);
+    }
+
+    void createUniformBuffers(VkDeviceSize bufferSize) {
+        auto uniformBuffers = std::vector<VkBuffer> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
+        auto uniformBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
+        auto uniformBuffersMapped = std::vector<void*> { MAX_FRAMES_IN_FLIGHT, nullptr };
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            this->createUniformBuffer(
+                bufferSize,
+                uniformBuffers[i],
+                uniformBuffersMemory[i],
+                uniformBuffersMapped[i]
+            );
+        }
+
+        m_uniformBuffers = std::move(uniformBuffers);
+        m_uniformBuffersMemory = std::move(uniformBuffersMemory);
+        m_uniformBuffersMapped = std::move(uniformBuffersMapped);
+    }
+
+    void createUniformBuffers() {
+        this->createUniformBuffers(sizeof(ComputeShaderUniformBufferObject));
+    }
+
+    /*
     void createUniformBuffers() {
         const auto bufferSize = VkDeviceSize { sizeof(ComputeShaderUniformBufferObject) };
         
@@ -4136,10 +4547,12 @@ private:
         auto uniformBuffersMapped = std::vector<void*> { MAX_FRAMES_IN_FLIGHT };
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            const VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            const VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
             this->createBuffer(
                 bufferSize,
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                usageFlags,
+                propertyFlags,
                 uniformBuffers[i],
                 uniformBuffersMemory[i]
             );
@@ -4151,6 +4564,7 @@ private:
         m_uniformBuffersMemory = std::move(uniformBuffersMemory);
         m_uniformBuffersMapped = std::move(uniformBuffersMapped);
     }
+    */
 
     void createDescriptorPool() {
         const auto poolSizes = std::array<VkDescriptorPoolSize, 2> {
@@ -4246,6 +4660,7 @@ private:
         m_computeDescriptorSets = computeDescriptorSets;
     }
 
+
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         auto memProperties = VkPhysicalDeviceMemoryProperties {};
         vkGetPhysicalDeviceMemoryProperties(m_engine->getPhysicalDevice(), &memProperties);
@@ -4258,6 +4673,7 @@ private:
 
         throw std::runtime_error("failed to find suitable memory type!");
     }
+
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
         const auto bufferInfo = VkBufferCreateInfo {
@@ -4288,6 +4704,8 @@ private:
 
         vkBindBufferMemory(m_engine->getLogicalDevice(), buffer, bufferMemory, 0);
     }
+
+
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
         const auto allocInfo = VkCommandBufferAllocateInfo {
