@@ -1690,6 +1690,46 @@ struct Particle {
     }
 };
 
+class ParticleGeneratorState final {
+    public:
+        explicit ParticleGeneratorState() {
+            m_rndEngine = std::default_random_engine { (unsigned) time(nullptr) };
+            m_rndDist = std::uniform_real_distribution<float> { 0.0f, 1.0f };
+        }
+
+        inline float next() {
+            return m_rndDist(m_rndEngine);
+        }
+    private:
+        std::default_random_engine m_rndEngine;
+        std::uniform_real_distribution<float> m_rndDist;
+};
+
+class ParticleGenerator final {
+    public:
+        explicit ParticleGenerator(ParticleGeneratorState initialState)
+            : m_state { initialState }
+        {
+        }
+
+        size_t generate(std::vector<Particle>& particles) {
+            for (auto& particle : particles) {
+                const float r = 0.25f * glm::sqrt(m_state.next());
+                const float theta = m_state.next() * 2.0f * glm::pi<float>();
+                const float x = r * glm::cos(theta) * HEIGHT / WIDTH;
+                const float y = r * glm::sin(theta);
+
+                particle.position = glm::vec2(x, y);
+                particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
+                particle.color = glm::vec4(m_state.next(), m_state.next(), m_state.next(), 1.0f);
+            }
+
+            return particles.size();
+        }
+    private:
+        ParticleGeneratorState m_state;
+};
+
 class ComputeShaderApp {
 public:
     void run() {
@@ -1823,7 +1863,7 @@ private:
 
             vkDestroyRenderPass(m_engine->getLogicalDevice(), m_renderPass, nullptr);
 
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
                 vkDestroyBuffer(m_engine->getLogicalDevice(), m_uniformBuffers[i], nullptr);
                 vkFreeMemory(m_engine->getLogicalDevice(), m_uniformBuffersMemory[i], nullptr);
             }
@@ -1832,12 +1872,12 @@ private:
       
             vkDestroyDescriptorSetLayout(m_engine->getLogicalDevice(), m_computeDescriptorSetLayout, nullptr);
 
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
                 vkDestroyBuffer(m_engine->getLogicalDevice(), m_shaderStorageBuffers[i], nullptr);
                 vkFreeMemory(m_engine->getLogicalDevice(), m_shaderStorageBuffersMemory[i], nullptr);
             }
 
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
                 vkDestroySemaphore(m_engine->getLogicalDevice(), m_renderFinishedSemaphores[i], nullptr);
                 vkDestroySemaphore(m_engine->getLogicalDevice(), m_imageAvailableSemaphores[i], nullptr);
                 vkDestroySemaphore(m_engine->getLogicalDevice(), m_computeFinishedSemaphores[i], nullptr);
@@ -2090,18 +2130,22 @@ private:
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
         };
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            auto result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]);
+        for (size_t i = 0; i < imageAvailableSemaphores.size(); i++) {
+            const auto result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image available semaphore for a frame");
             }
+        }
 
-            result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]);
+        for (size_t i = 0; i < renderFinishedSemaphores.size(); i++) {
+            const auto result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create render finished semaphore for a frame");
             }
+        }
 
-            result = vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &inFlightFences[i]);
+        for (size_t i = 0; i < inFlightFences.size(); i++) {
+            const auto result = vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &inFlightFences[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create in-flight semaphore for a frame");
             }
@@ -2390,7 +2434,7 @@ private:
         auto shaderStorageBuffers = std::vector<VkBuffer> { MAX_FRAMES_IN_FLIGHT };
         auto shaderStorageBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT };
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        for (size_t i = 0; i < shaderStorageBuffers.size(); i++) {
             this->_createShaderStorageBuffer(bufferSize, shaderStorageBuffers[i], shaderStorageBuffersMemory[i]);
         }
 
@@ -2398,10 +2442,7 @@ private:
         m_shaderStorageBuffersMemory = std::move(shaderStorageBuffersMemory);
     }
 
-    void __uploadShaderStorageBuffers(
-        const std::vector<Particle>& particles,
-        const std::vector<VkBuffer>& shaderStorageBuffers
-    ) {
+    void _uploadShaderStorageBuffers(const std::vector<VkBuffer>& shaderStorageBuffers, const std::vector<Particle>& particles) {
         const auto bufferSize = VkDeviceSize { sizeof(Particle) * particles.size() };
 
         // Create a staging buffer used to upload data to the gpu
@@ -2420,7 +2461,7 @@ private:
         memcpy(data, particles.data(), static_cast<size_t>(bufferSize));
         vkUnmapMemory(m_engine->getLogicalDevice(), stagingBufferMemory);
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        for (size_t i = 0; i < shaderStorageBuffers.size(); i++) {
             this->copyBuffer(stagingBuffer, shaderStorageBuffers[i], bufferSize);
         }
 
@@ -2428,30 +2469,14 @@ private:
         vkFreeMemory(m_engine->getLogicalDevice(), stagingBufferMemory, nullptr);
     }
 
-    void _uploadShaderStorageBuffers(const std::vector<VkBuffer>& shaderStorageBuffers) {
-        // Initialize particles.
-        auto rndEngine = std::default_random_engine { (unsigned) time(nullptr) };
-        auto rndDist = std::uniform_real_distribution<float> { 0.0f, 1.0f };
-
-        // Initial particle positions on a circle
-        auto particles = std::vector<Particle> { PARTICLE_COUNT };
-        for (auto& particle : particles) {
-            const float r = 0.25f * glm::sqrt(rndDist(rndEngine));
-            const float theta = rndDist(rndEngine) * 2.0f * glm::pi<float>();
-            const float x = r * glm::cos(theta) * HEIGHT / WIDTH;
-            const float y = r * glm::sin(theta);
-
-            particle.position = glm::vec2(x, y);
-            particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
-            particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
-        }
-
-        this->__uploadShaderStorageBuffers(particles, shaderStorageBuffers);
-    }
-
     void createShaderStorageBuffers() {
+        auto initialState = ParticleGeneratorState {};
+        auto particleGenerator = ParticleGenerator { initialState };
+        auto particles = std::vector<Particle> { PARTICLE_COUNT };
+        particleGenerator.generate(particles);
+
         this->_createShaderStorageBuffers(sizeof(Particle) * PARTICLE_COUNT);
-        this->_uploadShaderStorageBuffers(m_shaderStorageBuffers);
+        this->_uploadShaderStorageBuffers(m_shaderStorageBuffers, particles);
     }
     
     void createUniformBuffer(VkDeviceSize bufferSize, VkBuffer& uniformBuffer, VkDeviceMemory& uniformBufferMemory, void*& uniformBufferMapped) {
@@ -2473,7 +2498,7 @@ private:
         auto uniformBuffersMemory = std::vector<VkDeviceMemory> { MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE };
         auto uniformBuffersMapped = std::vector<void*> { MAX_FRAMES_IN_FLIGHT, nullptr };
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        for (size_t i = 0; i < uniformBuffers.size(); i++) {
             this->createUniformBuffer(
                 bufferSize,
                 uniformBuffers[i],
@@ -2803,13 +2828,15 @@ private:
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
         };
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            auto result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &computeFinishedSemaphores[i]);
+        for (size_t i = 0; i < computeFinishedSemaphores.size(); i++) {
+            const auto result = vkCreateSemaphore(m_engine->getLogicalDevice(), &semaphoreInfo, nullptr, &computeFinishedSemaphores[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create compute finished semaphore for a frame");
             }
+        }
 
-            result = vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &computeInFlightFences[i]);
+        for (size_t i = 0; i < computeInFlightFences.size(); i++) {
+            const auto result = vkCreateFence(m_engine->getLogicalDevice(), &fenceInfo, nullptr, &computeInFlightFences[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("failed to create compute in flight fence for a frame");
             }
