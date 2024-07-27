@@ -1014,35 +1014,6 @@ class WindowSystem final {
         }
 };
 
-/*
-class Buffer final {
-    public:
-        explicit Buffer(const BufferSpec& bufferSpec) = default;
-
-        uint32_t stride() const {
-
-        }
-
-        uint32_t size() const {
-
-        }
-
-        uint32_t elementCount() const {
-        
-        }
-    private:
-        VkBuffer m_buffer;
-        VkDeviceMemory m_bufferMemory;
-        BufferSpec m_bufferSpec;
-};
-
-struct BufferSpec {
-    VkDeviceSize size;
-    VkBufferUsageFlags usage;
-    VkMemoryPropertyFlags properties;
-};
-*/
-
 class GpuDevice final {
     public:
         explicit GpuDevice() = delete;
@@ -1169,42 +1140,6 @@ class GpuDevice final {
 
             return shaderModule;
         }
-
-        /*
-        Buffer createBuffer(const BufferSpec& bufferSpec) {
-            const auto bufferInfo = VkBufferCreateInfo {
-                .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                .size = bufferSpec.size,
-                .usage = bufferSpec.usage,
-                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            };
-
-            auto buffer = VkBuffer {};
-            const auto resultCreateBuffer = vkCreateBuffer(m_device, &bufferInfo, nullptr, &buffer);
-            if (resultCreateBuffer != VK_SUCCESS) {
-                throw std::runtime_error("failed to create buffer!");
-            }
-
-            auto memRequirements = VkMemoryRequirements {};
-            vkGetBufferMemoryRequirements(m_device, buffer, &memRequirements);
-
-            const auto allocInfo = VkMemoryAllocateInfo {
-                .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                .allocationSize = memRequirements.size,
-                .memoryTypeIndex = this->findMemoryType(memRequirements.memoryTypeBits, bufferSpec.properties),
-            };
-
-            auto bufferMemory = VkDeviceMemory {};
-            const auto resultAllocateMemory = vkAllocateMemory(m_device, &allocInfo, nullptr, &bufferMemory);
-            if (resultAllocateMemory != VK_SUCCESS) {
-                throw std::runtime_error("failed to allocate buffer memory!");
-            }
-
-            vkBindBufferMemory(m_device, buffer, bufferMemory, 0);
-
-            return Buffer { .buffer = buffer, .bufferMemory = bufferMemory };
-        }
-        */
     private:
         VkInstance m_instance;
         VkPhysicalDevice m_physicalDevice;
@@ -1606,12 +1541,6 @@ class Engine final {
         VkShaderModule createShaderModule(std::vector<char>& code) {
             return m_gpuDevice->createShaderModule(code);
         }
-
-        /*
-        Buffer createBuffer(const BufferSpec& bufferSpec) {
-            return m_gpuDevice->createBuffer(bufferSpec);
-        }
-        */
     private:
         PlatformInfoProvider* m_infoProvider;
         SystemFactory* m_systemFactory;
