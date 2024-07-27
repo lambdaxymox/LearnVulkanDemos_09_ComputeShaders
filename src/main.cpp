@@ -43,9 +43,6 @@ const uint32_t HEIGHT = 600;
 
 const uint32_t PARTICLE_COUNT = 8192;
 
-const std::string MODEL_PATH = std::string { "assets/viking_room/viking_room.obj" };
-const std::string TEXTURE_PATH = std::string { "assets/viking_room/viking_room.png" };
-
 const std::vector<std::string> VALIDATION_LAYERS = std::vector<std::string> { 
     VulkanEngine::Constants::VK_LAYER_KHRONOS_validation
 };
