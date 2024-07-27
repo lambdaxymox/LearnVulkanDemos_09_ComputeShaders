@@ -1414,11 +1414,11 @@ public:
         glfwTerminate();
     }
 
-    static Engine* createDebugMode() {
+    static std::unique_ptr<Engine> createDebugMode() {
         return Engine::create(true);
     }
 
-    static Engine* createReleaseMode() {
+    static std::unique_ptr<Engine> createReleaseMode() {
         return Engine::create(false);
     }
 
@@ -1626,8 +1626,8 @@ private:
     bool m_enableValidationLayers; 
     bool m_enableDebuggingExtensions;
 
-    static Engine* create(bool enableDebugging) {
-        auto newEngine = new Engine {};
+    static std::unique_ptr<Engine> create(bool enableDebugging) {
+        auto newEngine = std::make_unique<Engine>();
 
         if (enableDebugging) {
             newEngine->m_enableValidationLayers = true;
@@ -1739,7 +1739,7 @@ public:
     }
 
 private:
-    Engine* m_engine;
+    std::unique_ptr<Engine> m_engine;
 
 
     VkSwapchainKHR m_swapChain;
@@ -1791,7 +1791,7 @@ private:
         auto engine = Engine::createDebugMode();
         engine->createWindow(WIDTH, HEIGHT, "Compute Shaders");
 
-        m_engine = engine;
+        m_engine = std::move(engine);
     }
 
     void initEngine() {
@@ -1884,8 +1884,6 @@ private:
                 vkDestroyFence(m_engine->getLogicalDevice(), m_inFlightFences[i], nullptr);
                 vkDestroyFence(m_engine->getLogicalDevice(), m_computeInFlightFences[i], nullptr);
             }
-
-            delete m_engine;
         }
     }
 
