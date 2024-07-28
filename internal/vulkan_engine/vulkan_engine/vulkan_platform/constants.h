@@ -14,6 +14,19 @@ const std::string VK_KHR_portability_subset = std::string { "VK_KHR_portability_
 
 }
 
+class PhysicalDeviceProperties final {
+    public:
+        explicit PhysicalDeviceProperties(std::vector<VkExtensionProperties> deviceExtensions);
+
+        const std::vector<VkExtensionProperties>& getExtensions() const;
+    private:
+        std::vector<VkExtensionProperties> m_deviceExtensions;
+};
+
+
+
+
+
 }
 
 #endif // CONSTANTS_H

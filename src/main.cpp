@@ -1,5 +1,7 @@
 #include <vulkan/vulkan.h>
 
+#include "engine.h"
+
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -15,10 +17,10 @@
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
-
+/*
 #include <vulkan_engine/vulkan_platform.h>
 #include <vulkan_engine/vulkan_platform_impl_fmt.h>
-
+*/
 #include <unordered_set>
 
 #ifndef GLFW_INCLUDE_VULKAN
@@ -42,7 +44,7 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 const uint32_t PARTICLE_COUNT = 8192;
-
+/*
 const std::vector<std::string> VALIDATION_LAYERS = std::vector<std::string> { 
     VulkanEngine::Constants::VK_LAYER_KHRONOS_validation
 };
@@ -54,16 +56,18 @@ const bool ENABLE_DEBUGGING_EXTENSIONS = false;
 const bool ENABLE_VALIDATION_LAYERS = true;
 const bool ENABLE_DEBUGGING_EXTENSIONS = true;
 #endif
-
+*/
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 
-using VulkanInstanceProperties = VulkanEngine::VulkanPlatform::VulkanInstanceProperties;
-using PhysicalDeviceProperties = VulkanEngine::VulkanPlatform::PhysicalDeviceProperties;
-using Platform = VulkanEngine::VulkanPlatform::PlatformInfoProvider::Platform;
-using PlatformInfoProvider = VulkanEngine::VulkanPlatform::PlatformInfoProvider;
-
-
+using Engine = VulkanEngine::Engine;
+/*
+using VulkanInstanceProperties = VulkanEngine::VulkanInstanceProperties;
+using PhysicalDeviceProperties = VulkanEngine::PhysicalDeviceProperties;
+using Platform = VulkanEngine::PlatformInfoProvider::Platform;
+using PlatformInfoProvider = VulkanEngine::PlatformInfoProvider;
+*/
+/*
 struct QueueFamilyIndices final {
     std::optional<uint32_t> graphicsAndComputeFamily;
     std::optional<uint32_t> presentFamily;
@@ -1572,6 +1576,7 @@ class Engine final {
             return newEngine;
         }
 };
+*/
 
 
 
