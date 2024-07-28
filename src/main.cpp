@@ -1654,7 +1654,7 @@ class ParticleGenerator final {
         ParticleGeneratorState m_state;
 };
 
-class ComputeShaderApp {
+class App {
     public:
         void run() {
             this->initEngine();
@@ -2883,7 +2883,7 @@ class ComputeShaderApp {
 };
 
 int main() {
-    auto app = ComputeShaderApp {};
+    auto app = App {};
 
     try {
         app.run();
