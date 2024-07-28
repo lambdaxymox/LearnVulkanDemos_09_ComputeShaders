@@ -47,10 +47,6 @@ const std::vector<std::string> VALIDATION_LAYERS = std::vector<std::string> {
     VulkanEngine::Constants::VK_LAYER_KHRONOS_validation
 };
 
-const std::vector<const char*> DEVICE_EXTENSIONS = std::vector<const char*> {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
 #ifdef NDEBUG
 const bool ENABLE_VALIDATION_LAYERS = false;
 const bool ENABLE_DEBUGGING_EXTENSIONS = false;
