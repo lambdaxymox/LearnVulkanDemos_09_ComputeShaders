@@ -14,11 +14,10 @@
 #include <fstream>
 #include <chrono>
 #include <random>
+#include <unordered_set>
 
 #include <fmt/core.h>
 #include <fmt/ostream.h>
-
-#include <unordered_set>
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
