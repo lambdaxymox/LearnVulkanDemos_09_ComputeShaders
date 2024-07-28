@@ -2289,7 +2289,7 @@ class ComputeShaderApp {
         }
 
         void createComputePipeline() {
-            const auto computeShaderModule = m_engine->createShaderModuleFromFile("shaders/shader_compute.comp.glsl.spv");
+            const auto computeShaderModule = m_engine->createShaderModuleFromFile("shaders/shader_compute.comp.hlsl.spv");
 
             const auto computeShaderStageInfo = VkPipelineShaderStageCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
