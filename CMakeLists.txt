@@ -82,8 +82,6 @@ add_subdirectory(external/fmt-10.2.0)
 add_subdirectory(external/stb)
 add_subdirectory(external/tiny_obj_loader)
 
-# add_subdirectory(internal/vulkan_engine)
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_executable(LearnVulkanDemos_09_ComputeShaders)
@@ -92,7 +90,6 @@ target_sources(LearnVulkanDemos_09_ComputeShaders PRIVATE
     src/engine.cpp
 )
 target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE Vulkan::Vulkan)
-# target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE vulkan_engine)
 target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE glfw)
 target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE glm)
 target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE fmt)
