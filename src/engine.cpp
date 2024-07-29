@@ -1223,9 +1223,6 @@ using GpuDeviceInitializer = VulkanEngine::GpuDeviceInitializer;
 GpuDeviceInitializer::GpuDeviceInitializer(VkInstance instance)
     : m_instance { instance }
 {
-    /*
-    m_infoProvider = std::make_unique<PlatformInfoProvider>();
-    */
 }
 
 GpuDeviceInitializer::~GpuDeviceInitializer() {
