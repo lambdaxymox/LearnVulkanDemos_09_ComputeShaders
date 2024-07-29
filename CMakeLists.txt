@@ -88,6 +88,7 @@ add_executable(LearnVulkanDemos_09_ComputeShaders)
 target_sources(LearnVulkanDemos_09_ComputeShaders PRIVATE
     src/main.cpp
     src/engine.cpp
+    src/engine_impl_fmt.cpp
 )
 target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE Vulkan::Vulkan)
 target_link_libraries(LearnVulkanDemos_09_ComputeShaders PRIVATE glfw)
