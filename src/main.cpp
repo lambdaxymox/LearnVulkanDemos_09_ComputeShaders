@@ -35,6 +35,9 @@
 #include <stb/stb_image.h>
 #include <tiny_obj_loader/tiny_obj_loader.h>
 
+#include <compile_glsl_shaders/shaders_glsl.h>
+#include <compile_hlsl_shaders/shaders_hlsl.h>
+
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -126,16 +129,23 @@ class ParticleGenerator final {
         ParticleGeneratorState m_state;
 };
 
-class App {
+class App final {
     public:
-        void run() {
-            this->initEngine();
-            this->mainLoop();
+        explicit App() = default;
+
+        ~App() {
             this->cleanup();
+        }
+
+        void run() {
+            this->initApp();
+            this->mainLoop();
         }
     private:
         std::unique_ptr<Engine> m_engine;
 
+        std::unordered_map<std::string, std::vector<uint8_t>> m_glslShaders;
+        std::unordered_map<std::string, std::vector<uint8_t>> m_hlslShaders;
 
         VkSwapchainKHR m_swapChain;
         std::vector<VkImage> m_swapChainImages;
@@ -182,16 +192,10 @@ class App {
         bool m_enableDebuggingExtensions { false };
 
 
-        void createEngine() {
-            auto engine = Engine::createDebugMode();
-            engine->createWindow(WIDTH, HEIGHT, "Compute Shaders");
-
-            m_engine = std::move(engine);
-        }
-
-        void initEngine() {
+        void initApp() {
             this->createEngine();
         
+            this->createShaderBinaries();
 
             this->createSwapChain();
             this->createSwapChainImageViews();
@@ -280,6 +284,21 @@ class App {
                     vkDestroyFence(m_engine->getLogicalDevice(), m_computeInFlightFences[i], nullptr);
                 }
             }
+        }
+
+        void createEngine() {
+            auto engine = Engine::createDebugMode();
+            engine->createWindow(WIDTH, HEIGHT, "Compute Shaders");
+
+            m_engine = std::move(engine);
+        }
+
+        void createShaderBinaries() {
+            const auto glslShaders = shaders_glsl::createGlslShaders();
+            const auto hlslShaders = shaders_hlsl::createHlslShaders();
+
+            m_glslShaders = std::move(glslShaders);
+            m_hlslShaders = std::move(hlslShaders);
         }
 
         VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -611,8 +630,12 @@ class App {
 
 
         void createGraphicsPipeline() {
-            const auto vertexShaderModule = m_engine->createShaderModuleFromFile("shaders/shader_compute.vert.glsl.spv");
-            const auto fragmentShaderModule = m_engine->createShaderModuleFromFile("shaders/shader_compute.frag.glsl.spv");
+            /*
+            const auto vertexShaderModule = m_engine->createShaderModule(shaders_hlsl::get("shader_compute.vert.hlsl"));
+            const auto fragmentShaderModule = m_engine->createShaderModule(shaders_hlsl::get("shader_compute.frag.hlsl"));
+            */
+            const auto vertexShaderModule = m_engine->createShaderModule(m_glslShaders.at("shader_compute.vert.glsl"));
+            const auto fragmentShaderModule = m_engine->createShaderModule(m_glslShaders.at("shader_compute.frag.glsl"));
 
             const auto vertShaderStageInfo = VkPipelineShaderStageCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -757,7 +780,10 @@ class App {
         }
 
         void createComputePipeline() {
-            const auto computeShaderModule = m_engine->createShaderModuleFromFile("shaders/shader_compute.comp.hlsl.spv");
+            /*
+            const auto computeShaderModule = m_engine->createShaderModule(shaders_glsl::get("shader_compute.comp.glsl"));
+            */
+            const auto computeShaderModule = m_engine->createShaderModule(m_hlslShaders.at("shader_compute.comp.hlsl"));
 
             const auto computeShaderStageInfo = VkPipelineShaderStageCreateInfo {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

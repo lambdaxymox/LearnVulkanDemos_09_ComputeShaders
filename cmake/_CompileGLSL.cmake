@@ -43,7 +43,10 @@ function(CompileGLSL_GetShaderStage inShaderFile outShaderStage)
     list(LENGTH fileParts partCount)
     
     if(NOT partCount EQUAL 3)
-        message(FATAL_ERROR "Expected shader file name of the form `<shaderName>.<vert|frag|comp>.hlsl`. Got `${inShaderFileName}` from input `${inShaderFile}`")
+        message(FATAL_ERROR
+            "Expected shader file name of the form `<shaderName>.<vert|frag|comp>.glsl`."
+            "Got `${inShaderFileName}` from input `${inShaderFile}`."
+        )
     endif()
 
     list(GET fileParts 1 shaderType)
@@ -55,7 +58,7 @@ function(CompileGLSL_GetShaderStage inShaderFile outShaderStage)
     elseif (${shaderType} STREQUAL "comp")
         set(shaderStage "compute")
     else()
-        message(FATAL_ERROR "Expected a shader with shader type `vert`, `frag`, or `comp`. Got `${shaderType}`")
+        message(FATAL_ERROR "Expected a shader with shader type `vert`, `frag`, or `comp`. Got `${shaderType}`.")
     endif()
 
     set(${outShaderStage} ${shaderStage} PARENT_SCOPE)
@@ -71,7 +74,10 @@ function(CompileGLSL_GetCompileOptions GLSL_COMPILER_COMMAND inShaderSourceFile 
     elseif (${glslCompilerName} STREQUAL "glslangValidator")
         list(APPEND compileOptions -V "${inShaderSourceFile}" -o "${inSpirvBinaryFile}")
     else()
-        message(FATAL_ERROR "Unsupported compiler. The supported compilers are `glslc` and `glslangValidator`. Got `${GLSL_COMPILER_COMMAND}`")
+        message(FATAL_ERROR
+            "Unsupported compiler. The supported compilers are `glslc` and `glslangValidator`. "
+            "Got `${GLSL_COMPILER_COMMAND}`."
+        )
     endif()
 
     set(${outCompileOptions} ${compileOptions} PARENT_SCOPE)
@@ -114,8 +120,81 @@ function(CompileGLSL_CompileShaders GLSL_COMPILER_COMMAND inShaderSourceFiles in
 
         set(spirvOutputFile)
         CompileGLSL_CompileShader(${GLSL_COMPILER_COMMAND} ${shaderSourceFile} ${inSpirvBinaryOutputPath} spirvOutputFile)
+
         list(APPEND spirvBinaryFiles ${spirvOutputFile})
     endforeach()
     
     set(${outSpirvBinaryFiles} ${spirvBinaryFiles} PARENT_SCOPE)
+endfunction()
+
+function(CompileGLSL_EmbedShader inSpirvBinaryFile inSpirvEmbeddingOutputPath outSpirvBinaryEmbeddingFile)
+    get_filename_component(fileName ${inSpirvBinaryFile} NAME)
+    set(spirvBinaryEmbeddingFileName "${fileName}.embedded.in")
+    set(spirvBinaryEmbeddingFile "${inSpirvEmbeddingOutputPath}/${spirvBinaryEmbeddingFileName}")
+    string(REPLACE "." "_" shaderEmbeddingVariableName ${fileName})
+
+    add_custom_command(
+        OUTPUT ${spirvBinaryEmbeddingFile}
+        COMMAND xxd -i < ${inSpirvBinaryFile} > ${spirvBinaryEmbeddingFile}
+        DEPENDS ${inSpirvBinaryFile}
+        VERBATIM
+    )
+
+    set(${outSpirvBinaryEmbeddingFile} ${spirvBinaryEmbeddingFile} PARENT_SCOPE)
+endfunction()
+
+function(CompileGLSL_EmbedShaders inSpirvBinaryFiles inSpirvEmbeddingOutputPath outSpirvBinaryEmbeddingFiles)
+    set(spirvBinaryEmbeddingFiles)
+    foreach(spirvBinaryFile IN LISTS inSpirvBinaryFiles)
+        get_filename_component(fileName ${spirvBinaryFile} NAME_WE)
+        set(spirvBinaryEmbeddingFileName "${fileName}.embedded.in")
+        set(spirvBinaryEmbeddingFile "${inSpirvEmbeddingOutputPath}/${spirvBinaryEmbeddingFileName}")
+
+        message(STATUS "EMBEDDING SHADER")
+        message(STATUS "SOURCE `${spirvBinaryFile}`")
+        message(STATUS "TARGET `${spirvBinaryEmbeddingFile}`")
+        
+        set(spirvBinaryEmbeddingFile "")
+        CompileGLSL_EmbedShader(${spirvBinaryFile} ${inSpirvEmbeddingOutputPath} spirvBinaryEmbeddingFile)
+
+        list(APPEND spirvBinaryEmbeddingFiles ${spirvBinaryEmbeddingFile})
+    endforeach()
+    
+    set(${outSpirvBinaryEmbeddingFiles} ${spirvBinaryEmbeddingFiles} PARENT_SCOPE)
+endfunction()
+
+function(CompileGLSL_CombineEmbeddedShaders inSpirvEmbeddingFiles inFinalShaderEmbeddingOutputPath inFinalShaderEmbeddingFileName outFinalShaderEmbeddingFile)
+    string(APPEND combinedContent "")
+    string(APPEND combinedContent "#include <unordered_map>\n")
+    string(APPEND combinedContent "#include <string>\n")
+    string(APPEND combinedContent "#include <vector>\n\n\n")
+    string(APPEND combinedContent "const std::unordered_map<std::string, std::vector<unsigned char>> GLSL_SHADERS = std::unordered_map<std::string, std::vector<unsigned char>> {\n")
+
+    foreach(spirvEmbeddingFile IN LISTS inSpirvEmbeddingFiles)
+        get_filename_component(fileName ${spirvEmbeddingFile} NAME)
+        string(REGEX REPLACE ".spv.embedded.in$" "" shaderName ${fileName})
+
+        file(READ ${spirvEmbeddingFile} fileContent)
+        # Format the contents of the embedded shader by first removing all the 
+        # prepended white space on each line, and then replacing it with the desired
+        # amount of white space.
+        string(REGEX REPLACE "\n  " "\n" fileContent "${fileContent}")
+        string(REGEX REPLACE "^  " "            " fileContent "${fileContent}")
+        string(REGEX REPLACE ",\n" ",\n            " fileContent "${fileContent}")
+
+        string(APPEND combinedContent "    {\n")
+        string(APPEND combinedContent "        \"${shaderName}\",\n")
+        string(APPEND combinedContent "        std::vector<unsigned char> {\n")
+        string(APPEND combinedContent "${fileContent}")
+        string(APPEND combinedContent "        }\n")
+        string(APPEND combinedContent "    },\n")
+    endforeach()
+
+    string(APPEND combinedContent "}\;\n")
+
+    set(finalOutputFileName "${inFinalShaderEmbeddingFileName}.in")
+    set(finalOutputFile "${inFinalShaderEmbeddingOutputPath}/${finalOutputFileName}")
+    file(WRITE ${finalOutputFile} ${combinedContent})
+
+    set(${outFinalShaderEmbeddingFile} ${finalOutputFile} PARENT_SCOPE)
 endfunction()
