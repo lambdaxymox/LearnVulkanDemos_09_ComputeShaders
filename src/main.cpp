@@ -630,10 +630,6 @@ class App final {
 
 
         void createGraphicsPipeline() {
-            /*
-            const auto vertexShaderModule = m_engine->createShaderModule(shaders_hlsl::get("shader_compute.vert.hlsl"));
-            const auto fragmentShaderModule = m_engine->createShaderModule(shaders_hlsl::get("shader_compute.frag.hlsl"));
-            */
             const auto vertexShaderModule = m_engine->createShaderModule(m_glslShaders.at("shader_compute.vert.glsl"));
             const auto fragmentShaderModule = m_engine->createShaderModule(m_glslShaders.at("shader_compute.frag.glsl"));
 
@@ -780,9 +776,6 @@ class App final {
         }
 
         void createComputePipeline() {
-            /*
-            const auto computeShaderModule = m_engine->createShaderModule(shaders_glsl::get("shader_compute.comp.glsl"));
-            */
             const auto computeShaderModule = m_engine->createShaderModule(m_hlslShaders.at("shader_compute.comp.hlsl"));
 
             const auto computeShaderStageInfo = VkPipelineShaderStageCreateInfo {
